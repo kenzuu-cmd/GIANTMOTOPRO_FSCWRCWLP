@@ -1,0 +1,1729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="FSC, WRC, and WLP Management System - Form Entry Portal with File Upload">
+  <title>FSC / WRC / WLP Management System</title>
+  
+  <style>
+    /* ═══════════════════════════════════════════════════════════
+       CLEAN PAPER WHITE THEME - MINIMAL PROFESSIONAL STYLING
+       ═══════════════════════════════════════════════════════════ */
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    :root {
+      --color-primary: #2c3e50;
+      --color-secondary: #34495e;
+      --color-border: #d1d5db;
+      --color-border-focus: #6b7280;
+      --color-bg: #ffffff;
+      --color-bg-alt: #f9fafb;
+      --color-text: #1f2937;
+      --color-text-light: #6b7280;
+      --color-success: #10b981;
+      --color-success-bg: #d1fae5;
+      --color-error: #ef4444;
+      --color-error-bg: #fee2e2;
+      --color-disabled: #e5e7eb;
+      --color-warning: #f59e0b;
+      --color-warning-bg: #fef3c7;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--color-bg-alt);
+      color: var(--color-text);
+      line-height: 1.6;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: var(--color-bg);
+      border-radius: 8px;
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+    }
+    
+    /* Header */
+    .header {
+      background: var(--color-primary);
+      color: white;
+      padding: 28px 32px;
+      border-bottom: 3px solid var(--color-secondary);
+    }
+    
+    .header h1 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      letter-spacing: -0.025em;
+    }
+    
+    .header p {
+      font-size: 0.95rem;
+      opacity: 0.9;
+      font-weight: 400;
+    }
+    
+    /* Tabs */
+    .tabs {
+      display: flex;
+      background: var(--color-bg-alt);
+      border-bottom: 1px solid var(--color-border);
+      overflow-x: auto;
+    }
+    
+    .tab {
+      flex: 1;
+      min-width: 140px;
+      padding: 16px 20px;
+      text-align: center;
+      font-weight: 500;
+      font-size: 0.95rem;
+      cursor: pointer;
+      background: transparent;
+      color: var(--color-text-light);
+      border: none;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    
+    .tab:hover {
+      background: rgba(0, 0, 0, 0.02);
+      color: var(--color-text);
+    }
+    
+    .tab.active {
+      background: var(--color-bg);
+      color: var(--color-primary);
+      border-bottom-color: var(--color-primary);
+      font-weight: 600;
+    }
+    
+    /* Form Content */
+    .form-content {
+      padding: 32px;
+    }
+    
+    .form-panel {
+      display: none;
+    }
+    
+    .form-panel.active {
+      display: block;
+    }
+    
+    .form-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--color-primary);
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--color-bg-alt);
+    }
+    
+    /* Form Sections */
+    .form-section {
+      margin-bottom: 32px;
+    }
+    
+    .section-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--color-secondary);
+      margin-bottom: 16px;
+      padding-left: 12px;
+      border-left: 3px solid var(--color-primary);
+    }
+    
+    /* Form Groups */
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .form-row-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .form-row-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    
+    label {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--color-text);
+      margin-bottom: 6px;
+    }
+    
+    label .required {
+      color: var(--color-error);
+      margin-left: 2px;
+    }
+    
+    label .optional {
+      color: var(--color-text-light);
+      font-weight: 400;
+      font-size: 0.85rem;
+      margin-left: 4px;
+    }
+    
+    /* Form Inputs */
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    input[type="tel"],
+    input[type="email"],
+    select,
+    textarea {
+      width: 100%;
+      font-family: inherit;
+      font-size: 0.95rem;
+      padding: 10px 12px;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      background: var(--color-bg);
+      color: var(--color-text);
+      transition: all 0.2s ease;
+    }
+    
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--color-border-focus);
+      box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.1);
+    }
+    
+    input:disabled,
+    select:disabled,
+    textarea:disabled {
+      background: var(--color-disabled);
+      color: var(--color-text-light);
+      cursor: not-allowed;
+    }
+    
+    input::placeholder,
+    textarea::placeholder {
+      color: #9ca3af;
+    }
+    
+    select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 36px;
+    }
+    
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    
+    .help-text {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--color-text-light);
+      margin-top: 4px;
+      font-style: italic;
+    }
+    
+    .generated-field {
+      background: var(--color-bg-alt);
+      border-color: var(--color-border);
+      font-family: 'Courier New', monospace;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 500;
+      padding: 12px 28px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+    
+    .btn-primary {
+      background: var(--color-primary);
+      color: white;
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .btn-primary:hover {
+      background: var(--color-secondary);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-1px);
+    }
+    
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+    
+    .btn-primary:disabled {
+      background: var(--color-disabled);
+      color: var(--color-text-light);
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .btn-secondary {
+      background: transparent;
+      color: var(--color-text);
+      border: 1px solid var(--color-border);
+    }
+    
+    .btn-secondary:hover {
+      background: var(--color-bg-alt);
+    }
+    
+    .form-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid var(--color-border);
+    }
+    
+    /* Messages */
+    .message {
+      display: none;
+      padding: 14px 16px;
+      border-radius: 6px;
+      margin-bottom: 24px;
+      font-size: 0.9rem;
+      animation: slideDown 0.3s ease;
+    }
+    
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .message.visible {
+      display: block;
+    }
+    
+    .message.success {
+      background: var(--color-success-bg);
+      color: #047857;
+      border: 1px solid #6ee7b7;
+    }
+    
+    .message.error {
+      background: var(--color-error-bg);
+      color: #991b1b;
+      border: 1px solid #fca5a5;
+    }
+    
+    .message-content {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    
+    .message-icon {
+      flex-shrink: 0;
+      font-size: 1.1rem;
+    }
+    
+    /* Loading Spinner */
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Responsive */
+    @media (max-width: 640px) {
+      body {
+        padding: 10px;
+      }
+      
+      .form-content {
+        padding: 20px;
+      }
+      
+      .form-row,
+      .form-row-2,
+      .form-row-3 {
+        grid-template-columns: 1fr;
+      }
+      
+      .header h1 {
+        font-size: 1.4rem;
+      }
+      
+      .tab {
+        font-size: 0.85rem;
+        padding: 14px 12px;
+      }
+    }
+    
+    /* Accessibility */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    
+    *:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+    
+    /* File Upload Styles */
+    .file-upload-section {
+      margin-top: 16px;
+      padding: 20px;
+      background: var(--color-bg-alt);
+      border: 2px dashed var(--color-border);
+      border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+    
+    .file-upload-section:hover {
+      border-color: var(--color-border-focus);
+      background: #f3f4f6;
+    }
+    
+    .file-input-wrapper {
+      position: relative;
+    }
+    
+    .file-input-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    
+    .file-input-label:hover {
+      background: var(--color-bg-alt);
+      border-color: var(--color-border-focus);
+    }
+    
+    input[type="file"] {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    
+    .file-info {
+      margin-top: 12px;
+      padding: 10px;
+      background: var(--color-bg);
+      border-radius: 6px;
+      font-size: 0.9rem;
+      color: var(--color-text);
+    }
+    
+    .file-name {
+      font-weight: 500;
+      color: var(--color-primary);
+    }
+    
+    .file-size {
+      color: var(--color-text-light);
+      font-size: 0.85rem;
+      margin-left: 8px;
+    }
+    
+    .remove-file-btn {
+      margin-left: 12px;
+      padding: 4px 12px;
+      background: transparent;
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      color: var(--color-error);
+      transition: all 0.2s ease;
+    }
+    
+    .remove-file-btn:hover {
+      background: var(--color-error-bg);
+      border-color: var(--color-error);
+    }
+    
+    .image-preview {
+      margin-top: 16px;
+      text-align: center;
+    }
+    
+    .image-preview img {
+      max-width: 100%;
+      max-height: 300px;
+      border-radius: 8px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--color-border);
+    }
+    
+    .upload-progress {
+      margin-top: 12px;
+      padding: 12px;
+      background: var(--color-warning-bg);
+      border: 1px solid var(--color-warning);
+      border-radius: 6px;
+      color: #92400e;
+      font-size: 0.9rem;
+      display: none;
+    }
+    
+    .upload-progress.visible {
+      display: block;
+    }
+    
+    .file-restrictions {
+      margin-top: 8px;
+      font-size: 0.8rem;
+      color: var(--color-text-light);
+      font-style: italic;
+    }
+    
+    /* Help Button & Modal Styles */
+    .field-with-help {
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    
+    .field-with-help .form-group {
+      flex: 1;
+    }
+    
+    .help-button {
+      margin-top: 28px;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid var(--color-border);
+      background: var(--color-bg);
+      color: var(--color-text-light);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    
+    .help-button:hover {
+      background: var(--color-primary);
+      color: white;
+      border-color: var(--color-primary);
+      transform: scale(1.1);
+    }
+    
+    .help-button:focus {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+    
+    /* Modal Overlay */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: fadeIn 0.2s ease;
+    }
+    
+    .modal-overlay.active {
+      display: flex;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    /* Modal Dialog */
+    .modal-dialog {
+      background: var(--color-bg);
+      border-radius: 8px;
+      box-shadow: var(--shadow-lg), 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+      max-width: 560px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      animation: slideUp 0.3s ease;
+      position: relative;
+    }
+    
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .modal-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--color-primary);
+      margin: 0;
+    }
+    
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      border: none;
+      background: transparent;
+      color: var(--color-text-light);
+      font-size: 1.5rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+    
+    .modal-close:hover {
+      background: var(--color-bg-alt);
+      color: var(--color-text);
+    }
+    
+    .modal-body {
+      padding: 24px;
+    }
+    
+    .modal-text {
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: var(--color-text);
+      margin-bottom: 20px;
+    }
+    
+    .modal-email {
+      display: inline-block;
+      font-weight: 600;
+      color: var(--color-primary);
+      text-decoration: none;
+      padding: 2px 4px;
+      border-radius: 3px;
+      background: var(--color-bg-alt);
+    }
+    
+    .modal-email:hover {
+      text-decoration: underline;
+    }
+    
+    .required-details {
+      margin: 20px 0;
+      padding: 16px;
+      background: var(--color-bg-alt);
+      border-left: 3px solid var(--color-primary);
+      border-radius: 4px;
+    }
+    
+    .required-details h4 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--color-secondary);
+      margin: 0 0 12px 0;
+    }
+    
+    .required-details ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    
+    .required-details li {
+      padding: 6px 0;
+      font-size: 0.9rem;
+      color: var(--color-text);
+      position: relative;
+      padding-left: 20px;
+    }
+    
+    .required-details li::before {
+      content: "•";
+      position: absolute;
+      left: 8px;
+      color: var(--color-primary);
+      font-weight: bold;
+    }
+    
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    
+    .btn-email {
+      flex: 1;
+      background: var(--color-primary);
+      color: white;
+      text-decoration: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-weight: 500;
+      text-align: center;
+      transition: all 0.2s ease;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .btn-email:hover {
+      background: var(--color-secondary);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+    }
+    
+    .btn-cancel {
+      padding: 12px 24px;
+      background: transparent;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      color: var(--color-text);
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .btn-cancel:hover {
+      background: var(--color-bg-alt);
+    }
+    
+    @media (max-width: 640px) {
+      .modal-dialog {
+        max-width: 100%;
+        margin: 0 10px;
+      }
+      
+      .modal-actions {
+        flex-direction: column;
+      }
+      
+      .help-button {
+        margin-top: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header" role="banner">
+      <h1>FSC / WRC / WLP Management System</h1>
+      <p>Form Submission Portal</p>
+    </header>
+    
+    <!-- Tabs Navigation -->
+    <nav class="tabs" role="tablist" aria-label="Form selection">
+      <button class="tab active" role="tab" aria-selected="true" aria-controls="panel-wrc" id="tab-wrc" onclick="switchForm('wrc')">
+        WRC Registration
+      </button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-fsc" id="tab-fsc" onclick="switchForm('fsc')">
+        FSC Entry
+      </button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-wlp" id="tab-wlp" onclick="switchForm('wlp')">
+        WLP Acknowledgment
+      </button>
+    </nav>
+    
+    <!-- Form Content -->
+    <main class="form-content">
+      
+      <!-- ═══════════════════════════════════════════════════════════
+           WRC FORM - Warranty Registration Card
+           Auto-generated: WRC No., ENGINE No.
+           ═══════════════════════════════════════════════════════════ -->
+      <div id="panel-wrc" class="form-panel active" role="tabpanel" aria-labelledby="tab-wrc">
+        <div id="wrcMessage" class="message" role="alert"></div>
+        
+        <h2 class="form-title">Warranty Registration Card (WRC)</h2>
+        
+        <form id="wrcForm" onsubmit="submitWRCForm(event)" novalidate>
+          
+          <!-- WRC & Engine Identifiers -->
+          <div class="form-section">
+            <h3 class="section-title">Warranty & Engine Identifiers</h3>
+            <div class="form-row-2">
+              <div class="field-with-help">
+                <div class="form-group">
+                  <label for="wrcNo">WRC Number <span class="required">*</span></label>
+                  <input type="text" id="wrcNo" name="wrcNo" required aria-required="true" placeholder="Enter WRC number">
+                </div>
+                <button 
+                  type="button" 
+                  class="help-button" 
+                  onclick="openWrcHelpModal()"
+                  aria-label="Help: What if I don't have a WRC Number?"
+                  title="What if I don't have a WRC Number?">
+                  ?
+                </button>
+              </div>
+              <div class="form-group">
+                <label for="engineNo">Engine Number <span class="required">*</span></label>
+                <input type="text" id="engineNo" name="engineNo" required aria-required="true" placeholder="Enter engine number">
+              </div>
+            </div>
+          </div>
+          
+          <!-- Customer Information -->
+          <div class="form-section">
+            <h3 class="section-title">Customer Information</h3>
+            <div class="form-row-3">
+              <div class="form-group">
+                <label for="firstName">First Name <span class="required">*</span></label>
+                <input type="text" id="firstName" name="firstName" required aria-required="true" placeholder="Juan">
+              </div>
+              <div class="form-group">
+                <label for="mi">Middle Initial <span class="optional">(optional)</span></label>
+                <input type="text" id="mi" name="mi" maxlength="3" placeholder="D">
+              </div>
+              <div class="form-group">
+                <label for="lastName">Last Name <span class="required">*</span></label>
+                <input type="text" id="lastName" name="lastName" required aria-required="true" placeholder="Dela Cruz">
+              </div>
+            </div>
+            
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="age">Age <span class="optional">(optional)</span></label>
+                <input type="number" id="age" name="age" min="1" max="120" placeholder="25">
+              </div>
+              <div class="form-group">
+                <label for="gender">Gender <span class="optional">(optional)</span></label>
+                <select id="gender" name="gender">
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Contact Information -->
+          <div class="form-section">
+            <h3 class="section-title">Contact Information</h3>
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="contactNo">Contact Number <span class="required">*</span></label>
+                <input type="tel" id="contactNo" name="contactNo" required aria-required="true" placeholder="09XX XXX XXXX" pattern="[0-9]{10,11}">
+                <span class="help-text">10 or 11 digit mobile number</span>
+              </div>
+              <div class="form-group">
+                <label for="customerAddress">Address <span class="optional">(optional)</span></label>
+                <input type="text" id="customerAddress" name="customerAddress" placeholder="Complete address">
+              </div>
+            </div>
+            
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="munCity">Municipality/City <span class="optional">(optional)</span></label>
+                <input type="text" id="munCity" name="munCity" placeholder="e.g., Quezon City">
+              </div>
+              <div class="form-group">
+                <label for="province">Province <span class="optional">(optional)</span></label>
+                <select id="province" name="province">
+                  <option value="">Select Province</option>
+                  <!-- Populated dynamically via loadProvinces() -->
+                </select>
+                <span class="help-text">Loaded dynamically from server</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Purchase & Dealer Information -->
+          <div class="form-section">
+            <h3 class="section-title">Purchase & Dealer Information</h3>
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="datePurchased">Date Purchased <span class="required">*</span></label>
+                <input type="date" id="datePurchased" name="datePurchased" required aria-required="true">
+                <span class="help-text">Stored as yyyymmdd without slashes</span>
+              </div>
+              <div class="form-group">
+                <label for="dealerName">Dealer Name <span class="optional">(optional)</span></label>
+                <input type="text" id="dealerName" name="dealerName" placeholder="Dealer name">
+              </div>
+            </div>
+          </div>
+          
+          <!-- File Attachment -->
+          <div class="form-section">
+            <h3 class="section-title">Attach Document or Image</h3>
+            <div class="file-upload-section">
+              <div class="file-input-wrapper">
+                <label for="wrcFileInput" class="file-input-label">
+                  <span>Choose File</span>
+                </label>
+                <input type="file" id="wrcFileInput" name="wrcFileInput" accept="image/*,.pdf,.doc,.docx" onchange="handleFileSelect(event, 'wrc')" aria-label="Upload file for WRC">
+              </div>
+              <div id="wrcFileInfo" class="file-info" style="display: none;"></div>
+              <div id="wrcImagePreview" class="image-preview" style="display: none;"></div>
+              <div id="wrcUploadProgress" class="upload-progress"></div>
+              <p class="file-restrictions">Accepted: Images (JPG, PNG), PDF, Word documents. Max size: 10 MB</p>
+            </div>
+          </div>
+          
+          <!-- Form Actions -->
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary" id="wrcSubmitBtn">
+              Submit WRC Registration
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="resetWRCForm()">
+              Reset Form
+            </button>
+          </div>
+        </form>
+      </div>
+      
+      <!-- ═══════════════════════════════════════════════════════════
+           FSC FORM - Free Service Coupon
+           ═══════════════════════════════════════════════════════════ -->
+      <div id="panel-fsc" class="form-panel" role="tabpanel" aria-labelledby="tab-fsc">
+        <div id="fscMessage" class="message" role="alert"></div>
+        
+        <h2 class="form-title">Free Service Coupon (FSC)</h2>
+        
+        <form id="fscForm" onsubmit="submitFSCForm(event)" novalidate>
+          
+          <!-- Dealer Information -->
+          <div class="form-section">
+            <h3 class="section-title">Dealer Information</h3>
+            <div class="form-group">
+              <label for="fscDealerTransNo">Dealer Transmittal Number <span class="required">*</span></label>
+              <input type="text" id="fscDealerTransNo" name="fscDealerTransNo" required aria-required="true" placeholder="Enter transmittal number">
+            </div>
+          </div>
+          
+          <!-- Vehicle & Service Information -->
+          <div class="form-section">
+            <h3 class="section-title">Vehicle & Service Information</h3>
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="fscWrcNumber">WRC Number <span class="required">*</span></label>
+                <input type="text" id="fscWrcNumber" name="fscWrcNumber" required aria-required="true" placeholder="Reference WRC number">
+                <span class="help-text">Must match existing WRC record</span>
+              </div>
+              <div class="form-group">
+                <label for="frameNumber">Frame Number <span class="required">*</span></label>
+                <input type="text" id="frameNumber" name="frameNumber" required aria-required="true" placeholder="Vehicle frame number">
+              </div>
+            </div>
+            
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="couponNumber">Coupon Number <span class="optional">(optional)</span></label>
+                <select id="couponNumber" name="couponNumber">
+                  <option value="">Select Coupon Number</option>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="actualMileage">Actual Mileage <span class="required">*</span></label>
+                <input type="number" id="actualMileage" name="actualMileage" required aria-required="true" min="0" step="1" placeholder="0" oninput="enforceWholeNumber(this)">
+                <span class="help-text">Whole numbers only, no decimals</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Repair Information -->
+          <div class="form-section">
+            <h3 class="section-title">Repair Information</h3>
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="repairedDate">Repaired Date <span class="required">*</span></label>
+                <input type="date" id="repairedDate" name="repairedDate" required aria-required="true">
+                <span class="help-text">Split into Month/Day/Year columns</span>
+              </div>
+              <div class="form-group">
+                <label for="kscCode">KSC Code <span class="optional">(optional)</span></label>
+                <input type="text" id="kscCode" name="kscCode" placeholder="KSC code">
+              </div>
+            </div>
+          </div>
+          
+          <!-- File Attachment -->
+          <div class="form-section">
+            <h3 class="section-title">Attach Document or Image</h3>
+            <div class="file-upload-section">
+              <div class="file-input-wrapper">
+                <label for="fscFileInput" class="file-input-label">
+                  <span>Choose File</span>
+                </label>
+                <input type="file" id="fscFileInput" name="fscFileInput" accept="image/*,.pdf,.doc,.docx" onchange="handleFileSelect(event, 'fsc')" aria-label="Upload file for FSC">
+              </div>
+              <div id="fscFileInfo" class="file-info" style="display: none;"></div>
+              <div id="fscImagePreview" class="image-preview" style="display: none;"></div>
+              <div id="fscUploadProgress" class="upload-progress"></div>
+              <p class="file-restrictions">Accepted: Images (JPG, PNG), PDF, Word documents. Max size: 10 MB</p>
+            </div>
+          </div>
+          
+          <!-- Form Actions -->
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary" id="fscSubmitBtn">
+              Submit FSC Entry
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="resetFSCForm()">
+              Reset Form
+            </button>
+          </div>
+        </form>
+      </div>
+      
+      <!-- ═══════════════════════════════════════════════════════════
+           WLP FORM - Warranty Labor Payment
+           ═══════════════════════════════════════════════════════════ -->
+      <div id="panel-wlp" class="form-panel" role="tabpanel" aria-labelledby="tab-wlp">
+        <div id="wlpMessage" class="message" role="alert"></div>
+        
+        <h2 class="form-title">Warranty Labor Payment (WLP)</h2>
+        
+        <form id="wlpForm" onsubmit="submitWLPForm(event)" novalidate>
+          
+          <!-- Service Information -->
+          <div class="form-section">
+            <h3 class="section-title">Service Information</h3>
+            <div class="form-group">
+              <label for="wrsNumber">WRS Number <span class="required">*</span></label>
+              <input type="text" id="wrsNumber" name="wrsNumber" required aria-required="true" placeholder="Enter WRS number">
+            </div>
+            
+            <div class="form-group">
+              <label for="repairAckDate">Repair Acknowledged Date <span class="required">*</span></label>
+              <input type="date" id="repairAckDate" name="repairAckDate" required aria-required="true">
+              <span class="help-text">Split into Month/Day/Year columns</span>
+            </div>
+          </div>
+          
+          <!-- Acknowledgment Information -->
+          <div class="form-section">
+            <h3 class="section-title">Acknowledgment Information</h3>
+            <div class="form-group">
+              <label for="acknowledgedBy">Acknowledged By (Customer Name) <span class="required">*</span></label>
+              <input type="text" id="acknowledgedBy" name="acknowledgedBy" required aria-required="true" placeholder="Full customer name">
+            </div>
+          </div>
+          
+          <!-- File Attachment -->
+          <div class="form-section">
+            <h3 class="section-title">Attach Document or Image</h3>
+            <div class="file-upload-section">
+              <div class="file-input-wrapper">
+                <label for="wlpFileInput" class="file-input-label">
+                  <span>Choose File</span>
+                </label>
+                <input type="file" id="wlpFileInput" name="wlpFileInput" accept="image/*,.pdf,.doc,.docx" onchange="handleFileSelect(event, 'wlp')" aria-label="Upload file for WLP">
+              </div>
+              <div id="wlpFileInfo" class="file-info" style="display: none;"></div>
+              <div id="wlpImagePreview" class="image-preview" style="display: none;"></div>
+              <div id="wlpUploadProgress" class="upload-progress"></div>
+              <p class="file-restrictions">Accepted: Images (JPG, PNG), PDF, Word documents. Max size: 10 MB</p>
+            </div>
+          </div>
+          
+          <!-- Form Actions -->
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary" id="wlpSubmitBtn">
+              Submit WLP Acknowledgment
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="resetWLPForm()">
+              Reset Form
+            </button>
+          </div>
+        </form>
+      </div>
+      
+    </main>
+  </div>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════
+    //  CLIENT-SIDE JAVASCRIPT
+    //  Production-Ready Form Management with File Upload
+    // ═══════════════════════════════════════════════════════════
+    
+    'use strict';
+    
+    // File storage for each form
+    const fileStorage = {
+      wrc: null,
+      fsc: null,
+      wlp: null
+    };
+    
+    // ─────────────────────────────────────────────────────────
+    //  UTILITY: DATE FORMATTING
+    // ─────────────────────────────────────────────────────────
+    
+    /**
+     * Format date string from YYYY-MM-DD to YYYYMMDD
+     */
+    function formatDateFull(dateString) {
+      if (!dateString) return '';
+      return dateString.replace(/-/g, '');
+    }
+    
+    /**
+     * Split date string YYYY-MM-DD into components
+     */
+    function splitDate(dateString) {
+      if (!dateString) return { month: '', day: '', year: '' };
+      const parts = dateString.split('-');
+      return {
+        year: parts[0],
+        month: parts[1],
+        day: parts[2]
+      };
+    }
+    
+    // ─────────────────────────────────────────────────────────
+    //  FILE UPLOAD: HANDLING & VALIDATION
+    // ─────────────────────────────────────────────────────────
+    
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf', 
+                           'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    
+    /**
+     * Handle file selection with validation and preview
+     */
+    function handleFileSelect(event, formType) {
+      const file = event.target.files[0];
+      const fileInfoEl = document.getElementById(`${formType}FileInfo`);
+      const previewEl = document.getElementById(`${formType}ImagePreview`);
+      
+      // Clear previous file
+      if (!file) {
+        clearFileSelection(formType);
+        return;
+      }
+      
+      // Validate file size
+      if (file.size > MAX_FILE_SIZE) {
+        showMessage(`${formType}Message`, `File is too large. Maximum size is 10 MB. Selected file: ${(file.size / 1024 / 1024).toFixed(2)} MB`, true);
+        event.target.value = '';
+        clearFileSelection(formType);
+        return;
+      }
+      
+      // Validate file type
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        showMessage(`${formType}Message`, 'Invalid file type. Please select an image, PDF, or Word document.', true);
+        event.target.value = '';
+        clearFileSelection(formType);
+        return;
+      }
+      
+      // Store file
+      fileStorage[formType] = file;
+      
+      // Show file info
+      fileInfoEl.innerHTML = `
+        <span class="file-name">${file.name}</span>
+        <span class="file-size">(${formatFileSize(file.size)})</span>
+        <button type="button" class="remove-file-btn" onclick="clearFileSelection('${formType}')">Remove</button>
+      `;
+      fileInfoEl.style.display = 'block';
+      
+      // Show image preview if it's an image
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          previewEl.innerHTML = `<img src="${e.target.result}" alt="Preview of ${file.name}">`;
+          previewEl.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      } else {
+        previewEl.style.display = 'none';
+      }
+    }
+    
+    /**
+     * Clear file selection
+     */
+    function clearFileSelection(formType) {
+      fileStorage[formType] = null;
+      document.getElementById(`${formType}FileInput`).value = '';
+      document.getElementById(`${formType}FileInfo`).style.display = 'none';
+      document.getElementById(`${formType}ImagePreview`).style.display = 'none';
+    }
+    
+    /**
+     * Format file size for display
+     */
+    function formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    }
+    
+    /**
+     * Upload file to Google Drive and return URL
+     */
+    function uploadFile(file, formType) {
+      return new Promise((resolve, reject) => {
+        const progressEl = document.getElementById(`${formType}UploadProgress`);
+        progressEl.textContent = 'Uploading file...';
+        progressEl.classList.add('visible');
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const fileData = {
+            name: file.name,
+            type: file.type,
+            data: e.target.result.split(',')[1], // Base64 encoded data
+            formType: formType.toUpperCase()
+          };
+          
+          google.script.run
+            .withSuccessHandler(function(response) {
+              progressEl.classList.remove('visible');
+              if (response.success) {
+                resolve(response.url);
+              } else {
+                reject(new Error(response.message || 'File upload failed'));
+              }
+            })
+            .withFailureHandler(function(error) {
+              progressEl.classList.remove('visible');
+              reject(error);
+            })
+            .uploadFile(fileData);
+        };
+        reader.onerror = function() {
+          progressEl.classList.remove('visible');
+          reject(new Error('Failed to read file'));
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+    
+    // ─────────────────────────────────────────────────────────
+    //  UI: TAB SWITCHING
+    // ─────────────────────────────────────────────────────────
+    
+    function switchForm(formType) {
+      // Hide all panels
+      document.querySelectorAll('.form-panel').forEach(panel => {
+        panel.classList.remove('active');
+      });
+      
+      // Deactivate all tabs
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+        tab.setAttribute('aria-selected', 'false');
+      });
+      
+      // Show selected panel and activate tab
+      document.getElementById('panel-' + formType).classList.add('active');
+      const activeTab = document.getElementById('tab-' + formType);
+      activeTab.classList.add('active');
+      activeTab.setAttribute('aria-selected', 'true');
+    }
+    
+    // ─────────────────────────────────────────────────────────
+    //  UI: MESSAGE DISPLAY
+    // ─────────────────────────────────────────────────────────
+    
+    function showMessage(elementId, message, isError) {
+      const msgEl = document.getElementById(elementId);
+      const icon = isError ? '✕' : '✓';
+      
+      msgEl.innerHTML = `
+        <div class="message-content">
+          <span class="message-icon">${icon}</span>
+          <span>${message}</span>
+        </div>
+      `;
+      
+      msgEl.className = 'message visible ' + (isError ? 'error' : 'success');
+      
+      // Scroll to message
+      msgEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      
+      // Auto-hide after 10 seconds
+      setTimeout(() => {
+        msgEl.classList.remove('visible');
+      }, 10000);
+    }
+    
+    // ─────────────────────────────────────────────────────────
+    //  UI: BUTTON LOADING STATE
+    // ─────────────────────────────────────────────────────────
+    
+    function setButtonLoading(buttonId, isLoading) {
+      const btn = document.getElementById(buttonId);
+      if (isLoading) {
+        btn.disabled = true;
+        btn.dataset.originalText = btn.textContent;
+        btn.innerHTML = btn.textContent + ' <span class="spinner"></span>';
+      } else {
+        btn.disabled = false;
+        btn.textContent = btn.dataset.originalText || btn.textContent.replace(' ...', '');
+      }
+    }
+    
+    // ─────────────────────────────────────────────────────────
+    //  VALIDATION: CLIENT-SIDE FORM VALIDATION
+    // ─────────────────────────────────────────────────────────
+    
+    function validateForm(formElement) {
+      const inputs = formElement.querySelectorAll('input[required], select[required], textarea[required]');
+      let isValid = true;
+      
+      inputs.forEach(input => {
+        if (!input.value.trim()) {
+          isValid = false;
+          input.style.borderColor = 'var(--color-error)';
+        } else {
+          input.style.borderColor = '';
+        }
+      });
+      
+      return isValid;
+    }
+    
+    /**
+     * Enforce whole numbers only (no decimals)
+     */
+    function enforceWholeNumber(input) {
+      // Remove any decimal point and everything after it
+      if (input.value.includes('.')) {
+        input.value = Math.floor(parseFloat(input.value));
+      }
+      // Ensure non-negative
+      if (input.value < 0) {
+        input.value = 0;
+      }
+    }
+    
+    // ─────────────────────────────────────────────────────────
+    //  WRC FORM: SUBMISSION
+    // ─────────────────────────────────────────────────────────
+    
+    async function submitWRCForm(event) {
+      event.preventDefault();
+      
+      const form = event.target;
+      if (!validateForm(form)) {
+        showMessage('wrcMessage', 'Please fill in all required fields.', true);
+        return;
+      }
+      
+      setButtonLoading('wrcSubmitBtn', true);
+      
+      let fileUrl = '';
+      
+      // Upload file first if selected
+      if (fileStorage.wrc) {
+        try {
+          fileUrl = await uploadFile(fileStorage.wrc, 'wrc');
+        } catch (error) {
+          setButtonLoading('wrcSubmitBtn', false);
+          showMessage('wrcMessage', 'File upload failed: ' + error.message, true);
+          return;
+        }
+      }
+      
+      const formData = {
+        wrcNo: document.getElementById('wrcNo').value.trim(),
+        engineNo: document.getElementById('engineNo').value.trim(),
+        firstName: document.getElementById('firstName').value.trim(),
+        mi: document.getElementById('mi').value.trim(),
+        lastName: document.getElementById('lastName').value.trim(),
+        munCity: document.getElementById('munCity').value.trim(),
+        province: document.getElementById('province').value,
+        contactNo: document.getElementById('contactNo').value.trim(),
+        datePurchased: formatDateFull(document.getElementById('datePurchased').value),
+        dealerName: document.getElementById('dealerName').value.trim(),
+        customerAddress: document.getElementById('customerAddress').value.trim(),
+        age: document.getElementById('age').value,
+        gender: document.getElementById('gender').value,
+        dealerCode: '20551',  // Hardcoded dealer code
+        fileUrl: fileUrl  // Uploaded file URL
+      };
+      
+      google.script.run
+        .withSuccessHandler(function(response) {
+          setButtonLoading('wrcSubmitBtn', false);
+          if (response.success) {
+            showMessage('wrcMessage', response.message + (fileUrl ? ' File uploaded successfully.' : ''), false);
+            form.reset();
+            clearFileSelection('wrc');
+          } else {
+            showMessage('wrcMessage', response.message, true);
+          }
+        })
+        .withFailureHandler(function(error) {
+          setButtonLoading('wrcSubmitBtn', false);
+          showMessage('wrcMessage', 'Server error: ' + error.message, true);
+        })
+        .submitWRC(formData);
+    }
+    
+    function resetWRCForm() {
+      document.getElementById('wrcForm').reset();
+      clearFileSelection('wrc');
+      document.getElementById('wrcMessage').classList.remove('visible');
+    }
+    
+    // ─────────────────────────────────────────────────────────
+    //  FSC FORM: SUBMISSION
+    // ─────────────────────────────────────────────────────────
+    
+    async function submitFSCForm(event) {
+      event.preventDefault();
+      
+      const form = event.target;
+      if (!validateForm(form)) {
+        showMessage('fscMessage', 'Please fill in all required fields.', true);
+        return;
+      }
+      
+      setButtonLoading('fscSubmitBtn', true);
+      
+      let fileUrl = '';
+      
+      // Upload file first if selected
+      if (fileStorage.fsc) {
+        try {
+          fileUrl = await uploadFile(fileStorage.fsc, 'fsc');
+        } catch (error) {
+          setButtonLoading('fscSubmitBtn', false);
+          showMessage('fscMessage', 'File upload failed: ' + error.message, true);
+          return;
+        }
+      }
+      
+      const repairedDateSplit = splitDate(document.getElementById('repairedDate').value);
+      
+      const formData = {
+        dealerTransNo: document.getElementById('fscDealerTransNo').value.trim(),
+        dealerMechCode: '20551',  // Hardcoded dealer code
+        wrcNumber: document.getElementById('fscWrcNumber').value.trim(),
+        frameNumber: document.getElementById('frameNumber').value.trim(),
+        couponNumber: document.getElementById('couponNumber').value.trim(),
+        actualMileage: document.getElementById('actualMileage').value,
+        repairedMonth: repairedDateSplit.month,
+        repairedDay: repairedDateSplit.day,
+        repairedYear: repairedDateSplit.year,
+        kscCode: document.getElementById('kscCode').value.trim(),
+        fileUrl: fileUrl  // Uploaded file URL
+      };
+      
+      google.script.run
+        .withSuccessHandler(function(response) {
+          setButtonLoading('fscSubmitBtn', false);
+          if (response.success) {
+            showMessage('fscMessage', response.message + (fileUrl ? ' File uploaded successfully.' : ''), false);
+            form.reset();
+            clearFileSelection('fsc');
+          } else {
+            showMessage('fscMessage', response.message, true);
+          }
+        })
+        .withFailureHandler(function(error) {
+          setButtonLoading('fscSubmitBtn', false);
+          showMessage('fscMessage', 'Server error: ' + error.message, true);
+        })
+        .submitFSC(formData);
+    }
+    
+    function resetFSCForm() {
+      document.getElementById('fscForm').reset();
+      clearFileSelection('fsc');
+      document.getElementById('fscMessage').classList.remove('visible');
+    }
+    
+    // ─────────────────────────────────────────────────────────
+    //  WLP FORM: SUBMISSION
+    // ─────────────────────────────────────────────────────────
+    
+    async function submitWLPForm(event) {
+      event.preventDefault();
+      
+      const form = event.target;
+      if (!validateForm(form)) {
+        showMessage('wlpMessage', 'Please fill in all required fields.', true);
+        return;
+      }
+      
+      setButtonLoading('wlpSubmitBtn', true);
+      
+      let fileUrl = '';
+      
+      // Upload file first if selected
+      if (fileStorage.wlp) {
+        try {
+          fileUrl = await uploadFile(fileStorage.wlp, 'wlp');
+        } catch (error) {
+          setButtonLoading('wlpSubmitBtn', false);
+          showMessage('wlpMessage', 'File upload failed: ' + error.message, true);
+          return;
+        }
+      }
+      
+      const ackDateSplit = splitDate(document.getElementById('repairAckDate').value);
+      
+      const formData = {
+        wrsNumber: document.getElementById('wrsNumber').value.trim(),
+        repairAckMonth: ackDateSplit.month,
+        repairAckDay: ackDateSplit.day,
+        repairAckYear: ackDateSplit.year,
+        acknowledgedBy: document.getElementById('acknowledgedBy').value.trim(),
+        dealerMechCode: '20551',  // Hardcoded dealer code
+        fileUrl: fileUrl  // Uploaded file URL
+      };
+      
+      google.script.run
+        .withSuccessHandler(function(response) {
+          setButtonLoading('wlpSubmitBtn', false);
+          if (response.success) {
+            showMessage('wlpMessage', response.message + (fileUrl ? ' File uploaded successfully.' : ''), false);
+            form.reset();
+            clearFileSelection('wlp');
+          } else {
+            showMessage('wlpMessage', response.message, true);
+          }
+        })
+        .withFailureHandler(function(error) {
+          setButtonLoading('wlpSubmitBtn', false);
+          showMessage('wlpMessage', 'Server error: ' + error.message, true);
+        })
+        .submitWLP(formData);
+    }
+    
+    function resetWLPForm() {
+      document.getElementById('wlpForm').reset();
+      clearFileSelection('wlp');
+      document.getElementById('wlpMessage').classList.remove('visible');
+    }
+    
+    // ─────────────────────────────────────────────────────────
+    //  DYNAMIC DROPDOWN POPULATION
+    // ─────────────────────────────────────────────────────────
+    
+    function loadProvinces() {
+      google.script.run
+        .withSuccessHandler(function(provinces) {
+          const select = document.getElementById('province');
+          // Clear existing options except the first one
+          while (select.options.length > 1) {
+            select.remove(1);
+          }
+          // Add provinces
+          provinces.forEach(prov => {
+            const option = document.createElement('option');
+            option.value = prov;
+            option.textContent = prov;
+            select.appendChild(option);
+          });
+        })
+        .withFailureHandler(function(error) {
+          console.error('Failed to load provinces:', error);
+        })
+        .getProvinces();
+    }
+    
+    // ─────────────────────────────────────────────────────────
+    //  PAGE INITIALIZATION
+    // ─────────────────────────────────────────────────────────
+    
+    window.addEventListener('DOMContentLoaded', function() {
+      // Load dynamic dropdowns
+      loadProvinces();
+      
+      // Accessibility: Clear border color on input focus
+      document.querySelectorAll('input, select, textarea').forEach(el => {
+        el.addEventListener('focus', function() {
+          this.style.borderColor = '';
+        });
+      });
+    });
+    
+    // ─────────────────────────────────────────────────────────
+    //  WRC HELP MODAL
+    // ─────────────────────────────────────────────────────────
+    
+    function openWrcHelpModal() {
+      const modal = document.getElementById('wrcHelpModal');
+      modal.classList.add('active');
+      modal.setAttribute('aria-hidden', 'false');
+      // Focus the close button for accessibility
+      setTimeout(() => {
+        document.getElementById('modalCloseBtn').focus();
+      }, 100);
+    }
+    
+    function closeWrcHelpModal() {
+      const modal = document.getElementById('wrcHelpModal');
+      modal.classList.remove('active');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+    
+    // Close modal on overlay click
+    document.addEventListener('DOMContentLoaded', function() {
+      const modalOverlay = document.getElementById('wrcHelpModal');
+      if (modalOverlay) {
+        modalOverlay.addEventListener('click', function(e) {
+          if (e.target === modalOverlay) {
+            closeWrcHelpModal();
+          }
+        });
+      }
+      
+      // Close modal on Escape key
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          closeWrcHelpModal();
+        }
+      });
+    });
+    
+  </script>
+  
+  <!-- WRC Help Modal -->
+  <div id="wrcHelpModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modalTitle" class="modal-title">Don't Have a WRC Number?</h3>
+        <button 
+          type="button" 
+          class="modal-close" 
+          id="modalCloseBtn"
+          onclick="closeWrcHelpModal()" 
+          aria-label="Close dialog">
+          ×
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-text">
+          If you do not have your WRC Number, please email the following details to:
+          <br>
+          <a href="mailto:NolanRalph_P@kmp.com.ph" class="modal-email">NolanRalph_P@kmp.com.ph</a>
+        </p>
+        
+        <div class="required-details">
+          <h4>Required Details:</h4>
+          <ul>
+            <li>VIN/CHASSIS NUMBER</li>
+            <li>ENGINE NUMBER</li>
+            <li>DEALER NAME (GIANT MOTO PRO)</li>
+            <li>COMPLETE SHIPPING ADDRESS (BRANCH ADDRESS)</li>
+            <li>NAME OF RECIPIENT OR RECEIVER (BRANCH MANAGER)</li>
+            <li>CONTACT NUMBER</li>
+          </ul>
+        </div>
+        
+        <div class="modal-actions">
+          <a 
+            href="mailto:NolanRalph_P@kmp.com.ph?subject=Request%20for%20WRC%20Number&body=VIN%2FCHASSIS%20NUMBER%3A%0A%0AENGINE%20NUMBER%3A%0A%0ADEALER%20NAME%3A%20GIANT%20MOTO%20PRO%0A%0ACOMPLETE%20SHIPPING%20ADDRESS%20(BRANCH%20ADDRESS)%3A%0A%0ANAME%20OF%20RECIPIENT%20OR%20RECEIVER%20(BRANCH%20MANAGER)%3A%0A%0ACONTACT%20NUMBER%3A%0A" 
+            class="btn-email"
+            role="button">
+            Open Email Client
+          </a>
+          <button type="button" class="btn-cancel" onclick="closeWrcHelpModal()">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+</body>
+</html>
