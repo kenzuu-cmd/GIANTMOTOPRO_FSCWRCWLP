@@ -74,26 +74,203 @@ function isDuplicate_(sheet, colIndex, value) {
 }
 
 /**
+ * Get all headers from sheet as array
+ * @param {Sheet} sheet - The sheet to read from
+ * @returns {Array<string>} - Array of header names
+ */
+function getHeaders_(sheet) {
+  if (!sheet || sheet.getLastColumn() === 0) {
+    return [];
+  }
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  return headers.map(h => String(h).trim());
+}
+
+/**
  * Find column index by header name (1-based)
  * Returns 0 if not found
  */
 function findColumnByHeader_(sheet, headerName) {
-  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  const index = headers.findIndex(h => String(h).toUpperCase() === String(headerName).toUpperCase());
+  const headers = getHeaders_(sheet);
+  const index = headers.findIndex(h => h.toUpperCase() === String(headerName).toUpperCase());
   return index >= 0 ? index + 1 : 0;
+}
+
+/**
+ * Safely ensure a column exists in the sheet
+ * NEVER overwrites or shifts existing columns
+ * @param {Sheet} sheet - The sheet to modify
+ * @param {string} columnName - Exact column name to ensure exists
+ * @param {boolean} createIfMissing - Create if doesn't exist (default: true)
+ * @returns {number} - Column index (1-based), or 0 if not found and not created
+ */
+function ensureColumnExists_(sheet, columnName, createIfMissing) {
+  if (createIfMissing === undefined) createIfMissing = true;
+  
+  // Check if column already exists
+  const existingIndex = findColumnByHeader_(sheet, columnName);
+  if (existingIndex > 0) {
+    Logger.log(`Column '${columnName}' already exists at index ${existingIndex}`);
+    return existingIndex;
+  }
+  
+  // Column doesn't exist
+  if (!createIfMissing) {
+    Logger.log(`Column '${columnName}' not found and createIfMissing=false`);
+    return 0;
+  }
+  
+  // Create new column at END of sheet (never insert/overwrite)
+  try {
+    const headers = getHeaders_(sheet);
+    const newColIndex = headers.length + 1;
+    
+    Logger.log(`Creating column '${columnName}' at position ${newColIndex}`);
+    
+    // Set header
+    sheet.getRange(1, newColIndex).setValue(columnName);
+    sheet.getRange(1, newColIndex).setFontWeight('bold');
+    sheet.getRange(1, newColIndex).setBackground('#f3f3f3');
+    
+    // Log creation
+    logInfo_(`Created missing column '${columnName}' at position ${newColIndex}`, sheet.getName(), 1);
+    
+    return newColIndex;
+    
+  } catch (error) {
+    const errorMsg = `Failed to create column '${columnName}': ${error.message}`;
+    Logger.log(errorMsg);
+    logError_(errorMsg, '', '');
+    throw new Error(errorMsg);
+  }
+}
+
+/**
+ * Ensure attachment column exists (wrapper for backward compatibility)
+ * Checks multiple name variations before creating
+ * @param {Sheet} sheet - The sheet to check/modify
+ * @param {string} preferredName - Preferred column name
+ * @returns {number} - Column index (1-based)
+ */
+function ensureAttachmentColumn_(sheet, preferredName) {
+  preferredName = preferredName || 'Attachment URL';
+  
+  // Check for existing variations
+  const variations = [
+    'Attachment URL',
+    'Image/Drive Link',
+    'File/Image Link',
+    'File Link',
+    'Drive Link',
+    'Attachment',
+    'File URL'
+  ];
+  
+  for (let i = 0; i < variations.length; i++) {
+    const colIndex = findColumnByHeader_(sheet, variations[i]);
+    if (colIndex > 0) {
+      Logger.log(`Found existing attachment column: '${variations[i]}' at index ${colIndex}`);
+      return colIndex;
+    }
+  }
+  
+  // None found - create with preferred name
+  return ensureColumnExists_(sheet, preferredName, true);
 }
 
 /**
  * Log errors to the Log sheet
  */
 function logError_(message, wrcNo, engineNo) {
-  const logSheet = getSheet_(SHEET_LOG, ['Timestamp', 'WRC No.', 'ENGINE No.', 'Message']);
-  logSheet.appendRow([
-    new Date(),
-    wrcNo || '',
-    engineNo || '',
-    message
-  ]);
+  try {
+    const logSheet = getSheet_(SHEET_LOG, ['Timestamp', 'Level', 'Sheet', 'Row', 'WRC/WRS No.', 'Message']);
+    logSheet.appendRow([
+      new Date(),
+      'ERROR',
+      '',  // Sheet name (will be filled by caller if needed)
+      '',  // Row number (will be filled by caller if needed)
+      wrcNo || engineNo || '',
+      message
+    ]);
+  } catch (e) {
+    // Fallback to console if logging fails
+    Logger.log('ERROR: ' + message + ' | WRC: ' + wrcNo + ' | Engine: ' + engineNo);
+  }
+}
+
+/**
+ * Log info messages to the Log sheet
+ */
+function logInfo_(message, sheetName, rowNumber) {
+  try {
+    const logSheet = getSheet_(SHEET_LOG, ['Timestamp', 'Level', 'Sheet', 'Row', 'WRC/WRS No.', 'Message']);
+    logSheet.appendRow([
+      new Date(),
+      'INFO',
+      sheetName || '',
+      rowNumber || '',
+      '',
+      message
+    ]);
+  } catch (e) {
+    Logger.log('INFO: ' + message);
+  }
+}
+
+/**
+ * Build a row array mapped to sheet headers
+ * Ensures each field goes to the correct column regardless of order
+ * @param {Sheet} sheet - The sheet to append to
+ * @param {Object} fieldMap - Object mapping header names to values
+ * @returns {Array} - Row array with values in correct positions
+ */
+function buildRowFromHeaders_(sheet, fieldMap) {
+  const headers = getHeaders_(sheet);
+  const row = new Array(headers.length).fill('');
+  
+  // Map each field to its column position
+  for (let i = 0; i < headers.length; i++) {
+    const headerName = headers[i];
+    
+    // Check if we have a value for this header (case-insensitive)
+    for (const fieldName in fieldMap) {
+      if (fieldName.toUpperCase() === headerName.toUpperCase()) {
+        row[i] = fieldMap[fieldName] !== undefined ? fieldMap[fieldName] : '';
+        break;
+      }
+    }
+  }
+  
+  return row;
+}
+
+/**
+ * Safely append row with header-based mapping
+ * Ensures all required columns exist before appending
+ * @param {Sheet} sheet - The sheet to append to
+ * @param {Object} fieldMap - Object mapping header names to values
+ * @param {Array<string>} requiredColumns - Column names that must exist
+ * @returns {number} - Row number of appended row
+ */
+function appendMappedRow_(sheet, fieldMap, requiredColumns) {
+  // Ensure all required columns exist
+  if (requiredColumns && requiredColumns.length > 0) {
+    for (let i = 0; i < requiredColumns.length; i++) {
+      const colName = requiredColumns[i];
+      const colIndex = ensureColumnExists_(sheet, colName, true);
+      if (colIndex === 0) {
+        throw new Error(`Failed to ensure required column exists: ${colName}`);
+      }
+    }
+  }
+  
+  // Build row array mapped to current headers
+  const rowData = buildRowFromHeaders_(sheet, fieldMap);
+  
+  // Append the row
+  sheet.appendRow(rowData);
+  
+  return sheet.getLastRow();
 }
 
 // ════════════════════════════════════════════════════════════
@@ -171,13 +348,37 @@ function submitWRC(formData) {
       'File/Image Link', 'BRANCH', 'EMAIL'
     ]);
     
-    // Validate required fields
-    if (!formData.wrcNo || !formData.engineNo || !formData.firstName || 
-        !formData.lastName || !formData.contactNo || !formData.dealerCode ||
-        !formData.branch || !formData.email) {
+    // ═══════════════════════════════════════════════════════════════
+    // ENHANCED SERVER-SIDE VALIDATION - ALL REQUIRED FIELDS
+    // ═══════════════════════════════════════════════════════════════
+    
+    const requiredFields = [];
+    
+    if (!formData.wrcNo || String(formData.wrcNo).trim() === '') 
+      requiredFields.push('WRC Number');
+    if (!formData.engineNo || String(formData.engineNo).trim() === '') 
+      requiredFields.push('Engine Number');
+    if (!formData.firstName || String(formData.firstName).trim() === '') 
+      requiredFields.push('First Name');
+    if (!formData.lastName || String(formData.lastName).trim() === '') 
+      requiredFields.push('Last Name');
+    if (!formData.contactNo || String(formData.contactNo).trim() === '') 
+      requiredFields.push('Contact Number');
+    if (!formData.email || String(formData.email).trim() === '') 
+      requiredFields.push('Email Address');
+    if (!formData.branch || String(formData.branch).trim() === '') 
+      requiredFields.push('Branch');
+    if (!formData.datePurchased || String(formData.datePurchased).trim() === '') 
+      requiredFields.push('Date Purchased');
+    if (!formData.dealerCode || String(formData.dealerCode).trim() === '') 
+      requiredFields.push('Dealer Code');
+    if (!formData.fileUrl || String(formData.fileUrl).trim() === '') 
+      requiredFields.push('File/Document Upload');
+    
+    if (requiredFields.length > 0) {
       return {
         success: false,
-        message: 'Required fields are missing. Please fill all fields marked with *'
+        message: 'Server Validation Error: Required fields are missing: ' + requiredFields.join(', ') + '. Please complete all required fields before submitting.'
       };
     }
     
@@ -216,37 +417,51 @@ function submitWRC(formData) {
       };
     }
     
-    // Append row to WRC sheet
-    // Order: A-Q (WRC No., ENGINE No., First Name, MI, LAST NAME, 
-    //        MUN./CITY, PROVINCE, CONTACT NO., DATE PURCHASED, 
-    //        DEALER NAME, Customer ADDRESS, AGE, GENDER, Dealer Code, 
-    //        File Link, BRANCH, EMAIL)
-    // Note: STATUS column exists separately and will be updated
-    const newRow = sheet.appendRow([
-      formData.wrcNo,              // A: WRC No.
-      formData.engineNo,           // B: ENGINE No.
-      formData.firstName,          // C: First Name
-      formData.mi || '',           // D: MI
-      formData.lastName,           // E: LAST NAME
-      formData.munCity || '',      // F: MUN./CITY
-      formData.province || '',     // G: PROVINCE
-      formData.contactNo,          // H: CONTACT NO. OF CUSTOMER
-      formData.datePurchased,      // I: DATE PURCHASED (yyyymmdd)
-      formData.dealerName || '',   // J: DEALER NAME
-      formData.customerAddress || '', // K: Customer ADDRESS
-      formData.age || '',          // L: AGE
-      formData.gender || '',       // M: GENDER
-      formData.dealerCode,         // N: Dealer Code
-      formData.fileUrl || '',      // O: File/Image Link
-      formData.branch,             // P: BRANCH
-      formData.email               // Q: EMAIL
-    ]);
+    // ═══════════════════════════════════════════════════════════════
+    // HEADER-BASED ROW MAPPING - NEVER LOSES OR OVERWRITES COLUMNS
+    // ═══════════════════════════════════════════════════════════════
     
-    // Update STATUS column (existing column) to PENDING
-    const lastRow = sheet.getLastRow();
-    const statusColIndex = findColumnByHeader_(sheet, 'STATUS');
-    if (statusColIndex > 0) {
-      sheet.getRange(lastRow, statusColIndex).setValue('PENDING');
+    try {
+      // Define ALL expected columns with their values
+      const fieldMap = {
+        'WRC No.': formData.wrcNo,
+        'ENGINE No.': formData.engineNo,
+        'First Name': formData.firstName,
+        'MI': formData.mi || '',
+        'LAST NAME': formData.lastName,
+        'MUN./CITY': formData.munCity || '',
+        'PROVINCE': formData.province || '',
+        'CONTACT NO. OF CUSTOMER': formData.contactNo,
+        'DATE PURCHASED': formData.datePurchased,
+        'DEALER NAME': formData.dealerName || '',
+        'Customer ADDRESS': formData.customerAddress || '',
+        'AGE': formData.age || '',
+        'GENDER': formData.gender || '',
+        'Dealer Code': formData.dealerCode,
+        'BRANCH': formData.branch,
+        'EMAIL': formData.email,
+        'Attachment URL': formData.fileUrl || '',
+        'STATUS': 'PENDING'
+      };
+      
+      // Define required columns that MUST exist
+      const requiredColumns = [
+        'WRC No.', 'ENGINE No.', 'First Name', 'LAST NAME',
+        'CONTACT NO. OF CUSTOMER', 'DATE PURCHASED', 'Dealer Code',
+        'BRANCH', 'EMAIL', 'Attachment URL', 'STATUS'
+      ];
+      
+      // Safely append row with header-based mapping
+      const lastRow = appendMappedRow_(sheet, fieldMap, requiredColumns);
+      
+      logInfo_(`WRC submission successful - Row ${lastRow}`, 'WRC', lastRow);
+      
+    } catch (error) {
+      logError_('Failed to append WRC row: ' + error.message, formData.wrcNo, formData.engineNo);
+      return {
+        success: false,
+        message: 'System error: Could not save data to sheet. Please contact administrator.'
+      };
     }
     
     // Send PENDING confirmation email with WRC and Engine numbers
@@ -293,12 +508,39 @@ function submitFSC(formData) {
       'File/Image Link', 'BRANCH', 'EMAIL'
     ]);
     
-    // Validate required fields
-    if (!formData.dealerTransNo || !formData.dealerMechCode || !formData.wrcNumber || 
-        !formData.frameNumber || !formData.actualMileage || !formData.branch || !formData.email) {
+    // ═══════════════════════════════════════════════════════════════
+    // ENHANCED SERVER-SIDE VALIDATION - ALL REQUIRED FIELDS
+    // ═══════════════════════════════════════════════════════════════
+    
+    const requiredFields = [];
+    
+    if (!formData.dealerTransNo || String(formData.dealerTransNo).trim() === '') 
+      requiredFields.push('Dealer Transmittal Number');
+    if (!formData.dealerMechCode || String(formData.dealerMechCode).trim() === '') 
+      requiredFields.push('Dealer/Mechanic Code');
+    if (!formData.wrcNumber || String(formData.wrcNumber).trim() === '') 
+      requiredFields.push('WRC Number');
+    if (!formData.frameNumber || String(formData.frameNumber).trim() === '') 
+      requiredFields.push('Frame Number');
+    if (!formData.actualMileage || String(formData.actualMileage).trim() === '') 
+      requiredFields.push('Actual Mileage');
+    if (!formData.repairedMonth || String(formData.repairedMonth).trim() === '') 
+      requiredFields.push('Repaired Date (Month)');
+    if (!formData.repairedDay || String(formData.repairedDay).trim() === '') 
+      requiredFields.push('Repaired Date (Day)');
+    if (!formData.repairedYear || String(formData.repairedYear).trim() === '') 
+      requiredFields.push('Repaired Date (Year)');
+    if (!formData.email || String(formData.email).trim() === '') 
+      requiredFields.push('Email Address');
+    if (!formData.branch || String(formData.branch).trim() === '') 
+      requiredFields.push('Branch');
+    if (!formData.fileUrl || String(formData.fileUrl).trim() === '') 
+      requiredFields.push('File/Document Upload');
+    
+    if (requiredFields.length > 0) {
       return {
         success: false,
-        message: 'Required fields are missing. Please fill all fields marked with *'
+        message: 'Server Validation Error: Required fields are missing: ' + requiredFields.join(', ') + '. Please complete all required fields before submitting.'
       };
     }
     
@@ -335,33 +577,47 @@ function submitFSC(formData) {
       };
     }
     
-    // Append row to FSC sheet
-    // Order: A-M (Dealer Transmittal No., Dealer/Mechanic Code, WRC Number,
-    //        Frame Number, Coupon Number, Actual Mileage,
-    //        Repaired Month, Repaired Day, Repaired Year, KSC Code, 
-    //        File Link, BRANCH, EMAIL)
-    // Note: STATUS column exists separately and will be updated
-    const newRow = sheet.appendRow([
-      formData.dealerTransNo,      // A: Dealer Transmittal No.
-      formData.dealerMechCode,     // B: Dealer/Mechanic Code
-      formData.wrcNumber,          // C: WRC Number
-      formData.frameNumber,        // D: Frame Number
-      formData.couponNumber || '', // E: Coupon Number
-      formData.actualMileage,      // F: Actual Mileage
-      formData.repairedMonth,      // G: Repaired Month (MM)
-      formData.repairedDay,        // H: Repaired Day (DD)
-      formData.repairedYear,       // I: Repaired Year (YYYY)
-      formData.kscCode || '',      // J: KSC Code
-      formData.fileUrl || '',      // K: File/Image Link
-      formData.branch,             // L: BRANCH
-      formData.email               // M: EMAIL
-    ]);
+    // ═══════════════════════════════════════════════════════════════
+    // HEADER-BASED ROW MAPPING - NEVER LOSES OR OVERWRITES COLUMNS
+    // ═══════════════════════════════════════════════════════════════
     
-    // Update STATUS column (existing column) to PENDING
-    const lastRow = sheet.getLastRow();
-    const statusColIndex = findColumnByHeader_(sheet, 'STATUS');
-    if (statusColIndex > 0) {
-      sheet.getRange(lastRow, statusColIndex).setValue('PENDING');
+    try {
+      // Define ALL expected columns with their values
+      const fieldMap = {
+        'Dealer Transmittal No.': formData.dealerTransNo,
+        'Dealer/Mechanic Code': formData.dealerMechCode,
+        'WRC Number': formData.wrcNumber,
+        'Frame Number': formData.frameNumber,
+        'Coupon Number': formData.couponNumber || '',
+        'Actual Mileage': formData.actualMileage,
+        'Repaired Month': formData.repairedMonth,
+        'Repaired Day': formData.repairedDay,
+        'Repaired Year': formData.repairedYear,
+        'KSC Code': formData.kscCode || '',
+        'BRANCH': formData.branch,
+        'EMAIL': formData.email,
+        'Attachment URL': formData.fileUrl || '',
+        'STATUS': 'PENDING'
+      };
+      
+      // Define required columns that MUST exist
+      const requiredColumns = [
+        'Dealer Transmittal No.', 'Dealer/Mechanic Code', 'WRC Number',
+        'Frame Number', 'Actual Mileage', 'Repaired Month', 'Repaired Day',
+        'Repaired Year', 'BRANCH', 'EMAIL', 'Attachment URL', 'STATUS'
+      ];
+      
+      // Safely append row with header-based mapping
+      const lastRow = appendMappedRow_(sheet, fieldMap, requiredColumns);
+      
+      logInfo_(`FSC submission successful - Row ${lastRow}`, 'FSC', lastRow);
+      
+    } catch (error) {
+      logError_('Failed to append FSC row: ' + error.message, formData.wrcNumber, '');
+      return {
+        success: false,
+        message: 'System error: Could not save data to sheet. Please contact administrator.'
+      };
     }
     
     // Send PENDING confirmation email with WRC and Frame numbers
@@ -407,12 +663,35 @@ function submitWLP(formData) {
       'Dealer/Mechanic Code', 'File/Image Link', 'BRANCH', 'EMAIL'
     ]);
     
-    // Validate required fields
-    if (!formData.wrsNumber || !formData.acknowledgedBy || !formData.dealerMechCode ||
-        !formData.branch || !formData.email) {
+    // ═══════════════════════════════════════════════════════════════
+    // ENHANCED SERVER-SIDE VALIDATION - ALL REQUIRED FIELDS
+    // ═══════════════════════════════════════════════════════════════
+    
+    const requiredFields = [];
+    
+    if (!formData.wrsNumber || String(formData.wrsNumber).trim() === '') 
+      requiredFields.push('WRS Number');
+    if (!formData.repairAckMonth || String(formData.repairAckMonth).trim() === '') 
+      requiredFields.push('Repair Acknowledged Date (Month)');
+    if (!formData.repairAckDay || String(formData.repairAckDay).trim() === '') 
+      requiredFields.push('Repair Acknowledged Date (Day)');
+    if (!formData.repairAckYear || String(formData.repairAckYear).trim() === '') 
+      requiredFields.push('Repair Acknowledged Date (Year)');
+    if (!formData.acknowledgedBy || String(formData.acknowledgedBy).trim() === '') 
+      requiredFields.push('Acknowledged By (Customer Name)');
+    if (!formData.dealerMechCode || String(formData.dealerMechCode).trim() === '') 
+      requiredFields.push('Dealer/Mechanic Code');
+    if (!formData.email || String(formData.email).trim() === '') 
+      requiredFields.push('Email Address');
+    if (!formData.branch || String(formData.branch).trim() === '') 
+      requiredFields.push('Branch');
+    if (!formData.fileUrl || String(formData.fileUrl).trim() === '') 
+      requiredFields.push('File/Document Upload');
+    
+    if (requiredFields.length > 0) {
       return {
         success: false,
-        message: 'Required fields are missing. Please fill all fields marked with *'
+        message: 'Server Validation Error: Required fields are missing: ' + requiredFields.join(', ') + '. Please complete all required fields before submitting.'
       };
     }
     
@@ -433,28 +712,43 @@ function submitWLP(formData) {
       };
     }
     
-    // Append row to WLP sheet
-    // Order: A-I (WRS Number, Repair Acknowledged Month, Repair Acknowledged Day,
-    //        Repair Acknowledged Year, Acknowledged By, Dealer/Mechanic Code, 
-    //        File Link, BRANCH, EMAIL)
-    // Note: STATUS column exists separately and will be updated
-    const newRow = sheet.appendRow([
-      formData.wrsNumber,        // A: WRS Number
-      formData.repairAckMonth,   // B: Repair Acknowledged Month (MM)
-      formData.repairAckDay,     // C: Repair Acknowledged Day (DD)
-      formData.repairAckYear,    // D: Repair Acknowledged Year (YYYY)
-      formData.acknowledgedBy,   // E: Acknowledged By (Customer Name)
-      formData.dealerMechCode,   // F: Dealer/Mechanic Code
-      formData.fileUrl || '',    // G: File/Image Link
-      formData.branch,           // H: BRANCH
-      formData.email             // I: EMAIL
-    ]);
+    // ═══════════════════════════════════════════════════════════════
+    // HEADER-BASED ROW MAPPING - NEVER LOSES OR OVERWRITES COLUMNS
+    // ═══════════════════════════════════════════════════════════════
     
-    // Update STATUS column (existing column) to PENDING
-    const lastRow = sheet.getLastRow();
-    const statusColIndex = findColumnByHeader_(sheet, 'STATUS');
-    if (statusColIndex > 0) {
-      sheet.getRange(lastRow, statusColIndex).setValue('PENDING');
+    try {
+      // Define ALL expected columns with their values
+      const fieldMap = {
+        'WRS Number': formData.wrsNumber,
+        'Repair Acknowledged Month': formData.repairAckMonth,
+        'Repair Acknowledged Day': formData.repairAckDay,
+        'Repair Acknowledged Year': formData.repairAckYear,
+        'Acknowledged By: (Customer Name)': formData.acknowledgedBy,
+        'Dealer/Mechanic Code': formData.dealerMechCode,
+        'BRANCH': formData.branch,
+        'EMAIL': formData.email,
+        'Attachment URL': formData.fileUrl || '',
+        'STATUS': 'PENDING'
+      };
+      
+      // Define required columns that MUST exist
+      const requiredColumns = [
+        'WRS Number', 'Repair Acknowledged Month', 'Repair Acknowledged Day',
+        'Repair Acknowledged Year', 'Acknowledged By: (Customer Name)',
+        'Dealer/Mechanic Code', 'BRANCH', 'EMAIL', 'Attachment URL', 'STATUS'
+      ];
+      
+      // Safely append row with header-based mapping
+      const lastRow = appendMappedRow_(sheet, fieldMap, requiredColumns);
+      
+      logInfo_(`WLP submission successful - Row ${lastRow}`, 'WLP', lastRow);
+      
+    } catch (error) {
+      logError_('Failed to append WLP row: ' + error.message, formData.wrsNumber, '');
+      return {
+        success: false,
+        message: 'System error: Could not save data to sheet. Please contact administrator.'
+      };
     }
     
     // Send PENDING confirmation email with WRS number
