@@ -824,10 +824,11 @@
            ═══════════════════════════════════════════════════════════ -->
       <div id="panel-wrc" class="form-panel active" role="tabpanel" aria-labelledby="tab-wrc">
         <div id="wrcMessage" class="message" role="alert"></div>
+        <div id="wrcValidationBanner" class="validation-banner" role="alert"></div>
         
         <h2 class="form-title">Warranty Registration Card (WRC)</h2>
         
-        <form id="wrcForm" onsubmit="submitWRCForm(event)" novalidate>
+        <form id="wrcForm" onsubmit="submitWRCForm(event)">
           
           <!-- WRC & Engine Identifiers -->
           <div class="form-section">
@@ -980,14 +981,15 @@
             <div class="file-upload-section">
               <div class="file-input-wrapper">
                 <label for="wrcFileInput" class="file-input-label">
-                  <span>Choose File</span>
+                  <span>Choose File <span class="required">*</span></span>
                 </label>
-                <input type="file" id="wrcFileInput" name="wrcFileInput" accept="image/*,.pdf,.doc,.docx" onchange="handleFileSelect(event, 'wrc')" aria-label="Upload file for WRC">
+                <input type="file" id="wrcFileInput" name="wrcFileInput" accept="image/*,.pdf,.doc,.docx" onchange="handleFileSelect(event, 'wrc')" aria-label="Upload file for WRC" required aria-required="true">
               </div>
               <div id="wrcFileInfo" class="file-info" style="display: none;"></div>
               <div id="wrcImagePreview" class="image-preview" style="display: none;"></div>
               <div id="wrcUploadProgress" class="upload-progress"></div>
               <p class="file-restrictions">Accepted: Images (JPG, PNG), PDF, Word documents. Max size: 10 MB</p>
+              <p class="file-required-note"><strong>Required:</strong> Please attach a document or image before submitting.</p>
             </div>
           </div>
           
@@ -1008,10 +1010,11 @@
            ═══════════════════════════════════════════════════════════ -->
       <div id="panel-fsc" class="form-panel" role="tabpanel" aria-labelledby="tab-fsc">
         <div id="fscMessage" class="message" role="alert"></div>
+        <div id="fscValidationBanner" class="validation-banner" role="alert"></div>
         
         <h2 class="form-title">Free Service Coupon (FSC)</h2>
         
-        <form id="fscForm" onsubmit="submitFSCForm(event)" novalidate>
+        <form id="fscForm" onsubmit="submitFSCForm(event)">
           
           <!-- Dealer Information -->
           <div class="form-section">
@@ -1120,14 +1123,15 @@
             <div class="file-upload-section">
               <div class="file-input-wrapper">
                 <label for="fscFileInput" class="file-input-label">
-                  <span>Choose File</span>
+                  <span>Choose File <span class="required">*</span></span>
                 </label>
-                <input type="file" id="fscFileInput" name="fscFileInput" accept="image/*,.pdf,.doc,.docx" onchange="handleFileSelect(event, 'fsc')" aria-label="Upload file for FSC">
+                <input type="file" id="fscFileInput" name="fscFileInput" accept="image/*,.pdf,.doc,.docx" onchange="handleFileSelect(event, 'fsc')" aria-label="Upload file for FSC" required aria-required="true">
               </div>
               <div id="fscFileInfo" class="file-info" style="display: none;"></div>
               <div id="fscImagePreview" class="image-preview" style="display: none;"></div>
               <div id="fscUploadProgress" class="upload-progress"></div>
               <p class="file-restrictions">Accepted: Images (JPG, PNG), PDF, Word documents. Max size: 10 MB</p>
+              <p class="file-required-note"><strong>Required:</strong> Please attach a document or image before submitting.</p>
             </div>
           </div>
           
@@ -1148,10 +1152,11 @@
            ═══════════════════════════════════════════════════════════ -->
       <div id="panel-wlp" class="form-panel" role="tabpanel" aria-labelledby="tab-wlp">
         <div id="wlpMessage" class="message" role="alert"></div>
+        <div id="wlpValidationBanner" class="validation-banner" role="alert"></div>
         
         <h2 class="form-title">Warranty Labor Payment (WLP)</h2>
         
-        <form id="wlpForm" onsubmit="submitWLPForm(event)" novalidate>
+        <form id="wlpForm" onsubmit="submitWLPForm(event)">
           
           <!-- Service Information -->
           <div class="form-section">
@@ -1225,14 +1230,15 @@
             <div class="file-upload-section">
               <div class="file-input-wrapper">
                 <label for="wlpFileInput" class="file-input-label">
-                  <span>Choose File</span>
+                  <span>Choose File <span class="required">*</span></span>
                 </label>
-                <input type="file" id="wlpFileInput" name="wlpFileInput" accept="image/*,.pdf,.doc,.docx" onchange="handleFileSelect(event, 'wlp')" aria-label="Upload file for WLP">
+                <input type="file" id="wlpFileInput" name="wlpFileInput" accept="image/*,.pdf,.doc,.docx" onchange="handleFileSelect(event, 'wlp')" aria-label="Upload file for WLP" required aria-required="true">
               </div>
               <div id="wlpFileInfo" class="file-info" style="display: none;"></div>
               <div id="wlpImagePreview" class="image-preview" style="display: none;"></div>
               <div id="wlpUploadProgress" class="upload-progress"></div>
               <p class="file-restrictions">Accepted: Images (JPG, PNG), PDF, Word documents. Max size: 10 MB</p>
+              <p class="file-required-note"><strong>Required:</strong> Please attach a document or image before submitting.</p>
             </div>
           </div>
           
@@ -1481,23 +1487,108 @@
     }
     
     // ─────────────────────────────────────────────────────────
-    //  VALIDATION: CLIENT-SIDE FORM VALIDATION
+    //  VALIDATION: ENHANCED CLIENT-SIDE FORM VALIDATION
     // ─────────────────────────────────────────────────────────
     
-    function validateForm(formElement) {
+    function validateForm(formElement, formType) {
       const inputs = formElement.querySelectorAll('input[required], select[required], textarea[required]');
+      const missingFields = [];
       let isValid = true;
       
+      // Clear previous error states
       inputs.forEach(input => {
-        if (!input.value.trim()) {
-          isValid = false;
-          input.style.borderColor = 'var(--color-error)';
+        input.classList.remove('field-error');
+        const errorMsg = input.parentElement.querySelector('.error-message');
+        if (errorMsg) errorMsg.remove();
+      });
+      
+      // Validate each required field
+      inputs.forEach(input => {
+        let fieldLabel = '';
+        const label = input.parentElement.querySelector('label');
+        if (label) {
+          fieldLabel = label.textContent.replace('*', '').trim();
         } else {
-          input.style.borderColor = '';
+          fieldLabel = input.getAttribute('aria-label') || input.name || 'Unknown field';
+        }
+        
+        // Check if field is empty (different logic for file inputs)
+        let isEmpty = false;
+        if (input.type === 'file') {
+          isEmpty = !input.files || input.files.length === 0;
+          // Also check if file was cleared
+          if (!fileStorage[formType]) {
+            isEmpty = true;
+          }
+        } else if (input.type === 'select-one' || input.tagName === 'SELECT') {
+          isEmpty = !input.value || input.value === '';
+        } else {
+          isEmpty = !input.value || input.value.trim() === '';
+        }
+        
+        if (isEmpty) {
+          isValid = false;
+          input.classList.add('field-error');
+          missingFields.push(fieldLabel);
+          
+          // Add inline error message for non-file inputs
+          if (input.type !== 'file') {
+            const errorSpan = document.createElement('span');
+            errorSpan.className = 'error-message';
+            errorSpan.textContent = 'This field is required';
+            errorSpan.setAttribute('role', 'alert');
+            input.parentElement.appendChild(errorSpan);
+          }
         }
       });
       
+      // Show validation banner if there are errors
+      const bannerId = `${formType}ValidationBanner`;
+      const banner = document.getElementById(bannerId);
+      
+      if (!isValid && banner) {
+        banner.innerHTML = `
+          <h4 class="validation-banner-title">⚠ Please complete all required fields</h4>
+          <ul class="validation-banner-list">
+            ${missingFields.map(field => `<li>${field}</li>`).join('')}
+          </ul>
+        `;
+        banner.classList.add('visible');
+        banner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } else if (banner) {
+        banner.classList.remove('visible');
+      }
+      
       return isValid;
+    }
+    
+    /**
+     * Real-time field validation on blur
+     */
+    function validateField(input) {
+      input.classList.remove('field-error');
+      const errorMsg = input.parentElement.querySelector('.error-message');
+      if (errorMsg) errorMsg.remove();
+      
+      if (input.hasAttribute('required')) {
+        let isEmpty = false;
+        if (input.type === 'file') {
+          isEmpty = !input.files || input.files.length === 0;
+        } else if (input.type === 'select-one' || input.tagName === 'SELECT') {
+          isEmpty = !input.value || input.value === '';
+        } else {
+          isEmpty = !input.value || input.value.trim() === '';
+        }
+        
+        if (isEmpty && input.type !== 'file') {
+          input.classList.add('field-error');
+          const errorSpan = document.createElement('span');
+          errorSpan.className = 'error-message';
+          errorSpan.textContent = 'This field is required';
+          errorSpan.setAttribute('role', 'alert');
+          input.parentElement.appendChild(errorSpan);
+        }
+      }
     }
     
     /**
@@ -1522,8 +1613,16 @@
       event.preventDefault();
       
       const form = event.target;
-      if (!validateForm(form)) {
-        showMessage('wrcMessage', 'Please fill in all required fields.', true);
+      if (!validateForm(form, 'wrc')) {
+        showMessage('wrcMessage', '❌ Please fill in all required fields before submitting.', true);
+        return;
+      }
+      
+      // Additional file validation
+      if (!fileStorage.wrc) {
+        showMessage('wrcMessage', '❌ Please attach a document or image file.', true);
+        document.getElementById('wrcFileInput').classList.add('field-error');
+        document.getElementById('wrcFileInput').scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
       
@@ -1594,8 +1693,16 @@
       event.preventDefault();
       
       const form = event.target;
-      if (!validateForm(form)) {
-        showMessage('fscMessage', 'Please fill in all required fields.', true);
+      if (!validateForm(form, 'fsc')) {
+        showMessage('fscMessage', '❌ Please fill in all required fields before submitting.', true);
+        return;
+      }
+      
+      // Additional file validation
+      if (!fileStorage.fsc) {
+        showMessage('fscMessage', '❌ Please attach a document or image file.', true);
+        document.getElementById('fscFileInput').classList.add('field-error');
+        document.getElementById('fscFileInput').scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
       
@@ -1664,8 +1771,16 @@
       event.preventDefault();
       
       const form = event.target;
-      if (!validateForm(form)) {
-        showMessage('wlpMessage', 'Please fill in all required fields.', true);
+      if (!validateForm(form, 'wlp')) {
+        showMessage('wlpMessage', '❌ Please fill in all required fields before submitting.', true);
+        return;
+      }
+      
+      // Additional file validation
+      if (!fileStorage.wlp) {
+        showMessage('wlpMessage', '❌ Please attach a document or image file.', true);
+        document.getElementById('wlpFileInput').classList.add('field-error');
+        document.getElementById('wlpFileInput').scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
       
@@ -1756,10 +1871,45 @@
       // Load dynamic dropdowns
       loadProvinces();
       
-      // Accessibility: Clear border color on input focus
-      document.querySelectorAll('input, select, textarea').forEach(el => {
+      // Real-time validation on blur for all inputs
+      document.querySelectorAll('input[required], select[required], textarea[required]').forEach(el => {
+        el.addEventListener('blur', function() {
+          validateField(this);
+        });
+        
+        // Clear error state on focus/input
         el.addEventListener('focus', function() {
-          this.style.borderColor = '';
+          this.classList.remove('field-error');
+          const errorMsg = this.parentElement.querySelector('.error-message');
+          if (errorMsg) errorMsg.remove();
+        });
+        
+        el.addEventListener('input', function() {
+          if (this.value.trim() !== '') {
+            this.classList.remove('field-error');
+            const errorMsg = this.parentElement.querySelector('.error-message');
+            if (errorMsg) errorMsg.remove();
+          }
+        });
+      });
+      
+      // Clear validation banner when user starts fixing errors
+      document.querySelectorAll('input, select, textarea').forEach(el => {
+        el.addEventListener('input', function() {
+          const formType = this.form.id.replace('Form', '');
+          const banner = document.getElementById(`${formType}ValidationBanner`);
+          if (banner && banner.classList.contains('visible')) {
+            // Check if all required fields are now filled
+            const allFilled = Array.from(this.form.querySelectorAll('[required]')).every(field => {
+              if (field.type === 'file') return field.files && field.files.length > 0;
+              if (field.tagName === 'SELECT') return field.value !== '';
+              return field.value.trim() !== '';
+            });
+            
+            if (allFilled) {
+              banner.classList.remove('visible');
+            }
+          }
         });
       });
     });
