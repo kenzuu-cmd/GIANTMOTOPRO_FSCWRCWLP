@@ -1,1969 +1,1129 @@
 /**
  * ============================================================
- *  FSC / WRC / WLP — Google Apps Script Backend
+ *  FSC / WRC / WLP -- Google Apps Script Backend
  *  WITH DUAL EMAIL NOTIFICATIONS
  * ============================================================
  *
- *  This file contains server-side functions for the FormApp.html
- *  web application. It handles form submissions, validates data,
- *  enforces business rules, and writes to Google Sheets.
+ *  Server-side functions for the FormApp.html web application.
+ *  Handles form submissions, validates data, enforces business
+ *  rules, and writes to Google Sheets.
  *
  *  EMAIL NOTIFICATION FEATURES:
- *  1. PENDING Confirmation - Sent immediately upon form submission
- *  2. TRANSMITTED Notification - Sent when STATUS → "TRANSMITTED TO KAWASAKI"
+ *  1. PENDING Confirmation  – Sent immediately upon form submission
+ *  2. TRANSMITTED Notification – Sent when STATUS is changed to
+ *     "TRANSMITTED TO KAWASAKI" (via installable onEdit trigger)
  *
  *  SETUP INSTRUCTIONS:
  *  1. Replace SPREADSHEET_ID with your Google Sheets ID
  *  2. Ensure your spreadsheet has sheets: WRC, FSC, WLP, Log
- *  3. Deploy as web app
- *  4. Install onEdit trigger (see instructions at end of file)
+ *  3. Deploy as web app (Execute as: Me, Access: Anyone)
+ *  4. Install onEdit trigger:
+ *     – Go to Triggers (clock icon in left sidebar)
+ *     – Click "+ Add Trigger"
+ *     – Function: onEdit, Event source: From spreadsheet, Event: On edit
+ *     – Save and authorize
  * ============================================================
  */
 
-// ════════════════════════════════════════════════════════════
+// ================================================================
 //  CONSTANTS
-// ════════════════════════════════════════════════════════════
+// ================================================================
 
-/**
- * IMPORTANT — Replace with YOUR spreadsheet ID
- * Find it in your spreadsheet URL:
- * https://docs.google.com/spreadsheets/d/15rPY6eyA-mMhtAsoVag3rfbCtmTuNmbQ8DFbK6Cjaa0/edit
- */
 const SPREADSHEET_ID = '15rPY6eyA-mMhtAsoVag3rfbCtmTuNmbQ8DFbK6Cjaa0';
 
-/** Sheet names */
 const SHEET_WRC = 'WRC';
 const SHEET_FSC = 'FSC';
 const SHEET_WLP = 'WLP';
 const SHEET_LOG = 'Log';
 
-/** Column indices for uniqueness checks (0-based) */
+/** Column indices for uniqueness checks (0-based, row A = 0) */
 const WRC_COL_WRC_NO    = 0;  // Column A
 const WRC_COL_ENGINE_NO = 1;  // Column B
 
-// ════════════════════════════════════════════════════════════
-//  HELPER FUNCTIONS
-// ════════════════════════════════════════════════════════════
+/** Default Dealer Code when field is absent from UI (WLP) */
+const DEFAULT_DEALER_CODE = '20551';
 
 /**
- * Get or create a sheet by name
+ * Valid Dealer Codes (from Giant Moto XLSX):
+ *  20052 – BACAYAN           20053 – BARILI
+ *  20054 – CARMEN            20055 – CLARIN
+ *  20056 – CORDOVA           20051 – LAPULAPU
+ *  20057 – MINGLANILLA       20058 – SAN FERNANDO CEBU
+ *  20551 – TALISAY           20059 – TOLEDO
+ *  20060 – UBAY              20061 – V.RAMA
+ */
+const VALID_DEALER_CODES = [
+  '20052','20053','20054','20055','20056','20051',
+  '20057','20058','20551','20059','20060','20061'
+];
+
+// ================================================================
+//  HELPER FUNCTIONS
+// ================================================================
+
+/**
+ * Get or create a sheet by name.  If the sheet doesn't exist it is
+ * created with the supplied header row (bold, light-grey background).
  */
 function getSheet_(name, headers) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  let sheet = ss.getSheetByName(name);
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(name);
   if (!sheet) {
     sheet = ss.insertSheet(name);
     if (headers && headers.length) {
       sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-      sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+      sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#f3f3f3');
+      sheet.setFrozenRows(1);
     }
   }
   return sheet;
 }
 
 /**
- * Check if a value exists in a column (for uniqueness validation)
+ * Check whether a value already exists in a column (for uniqueness).
+ * @param {Sheet}  sheet    target sheet
+ * @param {number} colIndex 0-based column index
+ * @param {string} value    value to check
+ * @return {boolean}
  */
 function isDuplicate_(sheet, colIndex, value) {
   if (!value || String(value).trim() === '') return false;
-  const lastRow = sheet.getLastRow();
+  var lastRow = sheet.getLastRow();
   if (lastRow < 2) return false;
-  const data = sheet.getRange(2, colIndex + 1, lastRow - 1, 1).getValues();
-  const needle = String(value).trim().toUpperCase();
-  return data.some(row => String(row[0]).trim().toUpperCase() === needle);
+  var data = sheet.getRange(2, colIndex + 1, lastRow - 1, 1).getValues();
+  var needle = String(value).trim().toUpperCase();
+  for (var i = 0; i < data.length; i++) {
+    if (String(data[i][0]).trim().toUpperCase() === needle) return true;
+  }
+  return false;
 }
 
 /**
- * Get all headers from sheet as array
- * @param {Sheet} sheet - The sheet to read from
- * @returns {Array<string>} - Array of header names
+ * Return all header names from row 1 as trimmed strings.
  */
 function getHeaders_(sheet) {
-  if (!sheet || sheet.getLastColumn() === 0) {
-    return [];
-  }
-  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  return headers.map(h => String(h).trim());
+  if (!sheet || sheet.getLastColumn() === 0) return [];
+  return sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
+    .map(function(h) { return String(h).trim(); });
 }
 
 /**
- * Find column index by header name (1-based)
- * Returns 0 if not found
+ * Find a column's 1-based index by header name (case-insensitive).
+ * Returns 0 if not found.
  */
 function findColumnByHeader_(sheet, headerName) {
-  const headers = getHeaders_(sheet);
-  const index = headers.findIndex(h => h.toUpperCase() === String(headerName).toUpperCase());
-  return index >= 0 ? index + 1 : 0;
+  var headers = getHeaders_(sheet);
+  var target = String(headerName).toUpperCase();
+  for (var i = 0; i < headers.length; i++) {
+    if (headers[i].toUpperCase() === target) return i + 1;
+  }
+  return 0;
 }
 
 /**
- * Safely ensure a column exists in the sheet
- * NEVER overwrites or shifts existing columns
- * @param {Sheet} sheet - The sheet to modify
- * @param {string} columnName - Exact column name to ensure exists
- * @param {boolean} createIfMissing - Create if doesn't exist (default: true)
- * @returns {number} - Column index (1-based), or 0 if not found and not created
+ * Safely ensure a column exists in the sheet.
+ * Creates at the END of the sheet if missing.
+ * NEVER overwrites or shifts existing columns.
  */
 function ensureColumnExists_(sheet, columnName, createIfMissing) {
   if (createIfMissing === undefined) createIfMissing = true;
-  
-  // Check if column already exists
-  const existingIndex = findColumnByHeader_(sheet, columnName);
-  if (existingIndex > 0) {
-    Logger.log(`Column '${columnName}' already exists at index ${existingIndex}`);
-    return existingIndex;
-  }
-  
-  // Column doesn't exist
-  if (!createIfMissing) {
-    Logger.log(`Column '${columnName}' not found and createIfMissing=false`);
-    return 0;
-  }
-  
-  // Create new column at END of sheet (never insert/overwrite)
+
+  var existing = findColumnByHeader_(sheet, columnName);
+  if (existing > 0) return existing;
+
+  if (!createIfMissing) return 0;
+
   try {
-    const headers = getHeaders_(sheet);
-    const newColIndex = headers.length + 1;
-    
-    Logger.log(`Creating column '${columnName}' at position ${newColIndex}`);
-    
-    // Set header
-    sheet.getRange(1, newColIndex).setValue(columnName);
-    sheet.getRange(1, newColIndex).setFontWeight('bold');
-    sheet.getRange(1, newColIndex).setBackground('#f3f3f3');
-    
-    // Log creation
-    logInfo_(`Created missing column '${columnName}' at position ${newColIndex}`, sheet.getName(), 1);
-    
-    return newColIndex;
-    
-  } catch (error) {
-    const errorMsg = `Failed to create column '${columnName}': ${error.message}`;
-    Logger.log(errorMsg);
-    logError_(errorMsg, '', '');
-    throw new Error(errorMsg);
+    var headers = getHeaders_(sheet);
+    var newCol = headers.length + 1;
+    sheet.getRange(1, newCol).setValue(columnName);
+    sheet.getRange(1, newCol).setFontWeight('bold');
+    sheet.getRange(1, newCol).setBackground('#f3f3f3');
+    logInfo_('Created column "' + columnName + '" at position ' + newCol, sheet.getName(), 1);
+    return newCol;
+  } catch (err) {
+    var msg = 'Failed to create column "' + columnName + '": ' + err.message;
+    logError_(msg, '', '');
+    throw new Error(msg);
   }
 }
 
 /**
- * Ensure attachment column exists (wrapper for backward compatibility)
- * Checks multiple name variations before creating
- * @param {Sheet} sheet - The sheet to check/modify
- * @param {string} preferredName - Preferred column name
- * @returns {number} - Column index (1-based)
+ * Ensure an attachment column exists, checking common name variations
+ * so that legacy sheets with 'File/Image Link' etc. are handled.
+ *
+ * @param {Sheet}  sheet         target sheet
+ * @param {string} preferredName name to create if no variation exists
+ * @return {{ index: number, name: string }}  1-based index + actual header name
  */
 function ensureAttachmentColumn_(sheet, preferredName) {
   preferredName = preferredName || 'Attachment URL';
-  
-  // Check for existing variations
-  const variations = [
-    'Attachment URL',
-    'Image/Drive Link',
-    'File/Image Link',
-    'File Link',
-    'Drive Link',
-    'Attachment',
-    'File URL'
+  var variations = [
+    'Attachment URL', 'File/Image Link', 'Image/Drive Link',
+    'File Link', 'Drive Link', 'Attachment', 'File URL'
   ];
-  
-  for (let i = 0; i < variations.length; i++) {
-    const colIndex = findColumnByHeader_(sheet, variations[i]);
-    if (colIndex > 0) {
-      Logger.log(`Found existing attachment column: '${variations[i]}' at index ${colIndex}`);
-      return colIndex;
-    }
+  for (var i = 0; i < variations.length; i++) {
+    var idx = findColumnByHeader_(sheet, variations[i]);
+    if (idx > 0) return { index: idx, name: variations[i] };
   }
-  
-  // None found - create with preferred name
-  return ensureColumnExists_(sheet, preferredName, true);
+  var newIdx = ensureColumnExists_(sheet, preferredName, true);
+  return { index: newIdx, name: preferredName };
 }
 
-/**
- * Log errors to the Log sheet
- */
-function logError_(message, wrcNo, engineNo) {
+// ================================================================
+//  LOGGING HELPERS
+// ================================================================
+
+function logError_(message, refId1, refId2) {
   try {
-    const logSheet = getSheet_(SHEET_LOG, ['Timestamp', 'Level', 'Sheet', 'Row', 'WRC/WRS No.', 'Message']);
-    logSheet.appendRow([
-      new Date(),
-      'ERROR',
-      '',  // Sheet name (will be filled by caller if needed)
-      '',  // Row number (will be filled by caller if needed)
-      wrcNo || engineNo || '',
-      message
-    ]);
+    var logSheet = getSheet_(SHEET_LOG, ['Timestamp','Level','Sheet','Row','Reference','Message']);
+    logSheet.appendRow([new Date(), 'ERROR', '', '', refId1 || refId2 || '', message]);
   } catch (e) {
-    // Fallback to console if logging fails
-    Logger.log('ERROR: ' + message + ' | WRC: ' + wrcNo + ' | Engine: ' + engineNo);
+    Logger.log('ERROR: ' + message);
   }
 }
 
-/**
- * Log info messages to the Log sheet
- */
 function logInfo_(message, sheetName, rowNumber) {
   try {
-    const logSheet = getSheet_(SHEET_LOG, ['Timestamp', 'Level', 'Sheet', 'Row', 'WRC/WRS No.', 'Message']);
-    logSheet.appendRow([
-      new Date(),
-      'INFO',
-      sheetName || '',
-      rowNumber || '',
-      '',
-      message
-    ]);
+    var logSheet = getSheet_(SHEET_LOG, ['Timestamp','Level','Sheet','Row','Reference','Message']);
+    logSheet.appendRow([new Date(), 'INFO', sheetName || '', rowNumber || '', '', message]);
   } catch (e) {
     Logger.log('INFO: ' + message);
   }
 }
 
+// ================================================================
+//  ROW MAPPING (HEADER-BASED — never hard-coded column indices)
+// ================================================================
+
 /**
- * Build a row array mapped to sheet headers
- * Ensures each field goes to the correct column regardless of order
- * @param {Sheet} sheet - The sheet to append to
- * @param {Object} fieldMap - Object mapping header names to values
- * @returns {Array} - Row array with values in correct positions
+ * Build a row array where each element corresponds to its header.
+ * @param {Sheet}  sheet    the target sheet
+ * @param {Object} fieldMap { headerName: value, … }
  */
 function buildRowFromHeaders_(sheet, fieldMap) {
-  const headers = getHeaders_(sheet);
-  const row = new Array(headers.length).fill('');
-  
-  // Map each field to its column position
-  for (let i = 0; i < headers.length; i++) {
-    const headerName = headers[i];
-    
-    // Check if we have a value for this header (case-insensitive)
-    for (const fieldName in fieldMap) {
-      if (fieldName.toUpperCase() === headerName.toUpperCase()) {
-        row[i] = fieldMap[fieldName] !== undefined ? fieldMap[fieldName] : '';
+  var headers = getHeaders_(sheet);
+  var row = [];
+  for (var i = 0; i < headers.length; i++) {
+    var headerUpper = headers[i].toUpperCase();
+    var matched = false;
+    for (var key in fieldMap) {
+      if (key.toUpperCase() === headerUpper) {
+        row.push(fieldMap[key] !== undefined && fieldMap[key] !== null ? fieldMap[key] : '');
+        matched = true;
         break;
       }
     }
+    if (!matched) row.push('');
   }
-  
   return row;
 }
 
 /**
- * Safely append row with header-based mapping
- * Ensures all required columns exist before appending
- * @param {Sheet} sheet - The sheet to append to
- * @param {Object} fieldMap - Object mapping header names to values
- * @param {Array<string>} requiredColumns - Column names that must exist
- * @returns {number} - Row number of appended row
+ * Safely append a row with header-based mapping.
+ * Ensures all required columns exist before writing.
  */
 function appendMappedRow_(sheet, fieldMap, requiredColumns) {
-  // Ensure all required columns exist
   if (requiredColumns && requiredColumns.length > 0) {
-    for (let i = 0; i < requiredColumns.length; i++) {
-      const colName = requiredColumns[i];
-      const colIndex = ensureColumnExists_(sheet, colName, true);
-      if (colIndex === 0) {
-        throw new Error(`Failed to ensure required column exists: ${colName}`);
-      }
+    for (var i = 0; i < requiredColumns.length; i++) {
+      ensureColumnExists_(sheet, requiredColumns[i], true);
     }
   }
-  
-  // Build row array mapped to current headers
-  const rowData = buildRowFromHeaders_(sheet, fieldMap);
-  
-  // Append the row
+  var rowData = buildRowFromHeaders_(sheet, fieldMap);
   sheet.appendRow(rowData);
-  
   return sheet.getLastRow();
 }
 
-// ════════════════════════════════════════════════════════════
-//  WEB APP DEPLOYMENT
-// ════════════════════════════════════════════════════════════
+// ================================================================
+//  DATE NORMALIZATION: MMDDYYYY (no slashes)
+// ================================================================
 
 /**
- * doGet handler - serves the FormApp.html file
- * 
- * DEPLOYMENT:
- * 1. Click Deploy → New deployment
- * 2. Select type: Web app
- * 3. Execute as: Me
- * 4. Who has access: Anyone (or as needed)
- * 5. Deploy and copy the URL
+ * Normalize any reasonable date string to MMDDYYYY (8 digits, no delimiters).
+ * Handles: YYYY-MM-DD, YYYYMMDD, MM/DD/YYYY, MMDDYYYY.
+ * Defence-in-depth: always call server-side before writing.
  */
-function doGet(e) {
+function normalizeDateMMDDYYYY_(dateStr) {
+  if (!dateStr) return '';
+  var s = String(dateStr).replace(/[\/\-]/g, '');
+  if (s.length === 8) {
+    var prefix = s.substring(0, 2);
+    if (prefix === '19' || prefix === '20') {
+      // YYYYMMDD → MMDDYYYY
+      return s.substring(4, 6) + s.substring(6, 8) + s.substring(0, 4);
+    }
+    return s; // Already MMDDYYYY
+  }
+  return s; // Return as-is; validation will catch bad formats
+}
+
+// ================================================================
+//  WEB APP ENTRY POINTS
+// ================================================================
+
+function doGet() {
   return HtmlService.createHtmlOutputFromFile('FormApp')
     .setTitle('FSC WRC WLP Form Entry')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-/**
- * Show FormApp as a sidebar in the spreadsheet
- */
 function showFormApp() {
-  const html = HtmlService.createHtmlOutputFromFile('FormApp')
+  var html = HtmlService.createHtmlOutputFromFile('FormApp')
     .setTitle('FSC WRC WLP Forms');
   SpreadsheetApp.getUi().showSidebar(html);
 }
 
-/**
- * Show FormApp as a modal dialog
- */
 function showFormDialog() {
-  const html = HtmlService.createHtmlOutputFromFile('FormApp')
-    .setWidth(850)
-    .setHeight(750);
+  var html = HtmlService.createHtmlOutputFromFile('FormApp')
+    .setWidth(850).setHeight(750);
   SpreadsheetApp.getUi().showModalDialog(html, 'FSC WRC WLP Form Entry');
 }
 
-/**
- * Create custom menu when spreadsheet opens
- */
 function onOpen() {
-  const ui = SpreadsheetApp.getUi();
-  ui.createMenu('📋 FSC WRC WLP')
-    .addItem('📝 Open Form Entry', 'showFormApp')
-    .addItem('🌐 Open Form Dialog', 'showFormDialog')
+  SpreadsheetApp.getUi().createMenu('FSC WRC WLP')
+    .addItem('Open Form (Sidebar)', 'showFormApp')
+    .addItem('Open Form (Dialog)', 'showFormDialog')
     .addToUi();
 }
 
-// ════════════════════════════════════════════════════════════
-//  FORM SUBMISSION HANDLERS
-// ════════════════════════════════════════════════════════════
+// ================================================================
+//  FORM SUBMISSION: WRC
+// ================================================================
 
-/**
- * Submit WRC form data
- * 
- * Validates:
- * - Required fields
- * - Uniqueness of WRC No. and ENGINE No.
- * - Date format (yyyymmdd)
- * 
- * @param {Object} formData - Form data from client
- * @returns {Object} {success: boolean, message: string}
- */
 function submitWRC(formData) {
   try {
-    // Note: STATUS column already exists in sheet, just adding BRANCH and EMAIL
-    const sheet = getSheet_(SHEET_WRC, [
+    var sheet = getSheet_(SHEET_WRC, [
       'WRC No.', 'ENGINE No.', 'First Name', 'MI', 'LAST NAME',
       'MUN./CITY', 'PROVINCE', 'CONTACT NO. OF CUSTOMER', 'DATE PURCHASED',
-      'DEALER NAME', 'Customer ADDRESS', 'AGE', 'GENDER', 'Dealer Code', 
-      'File/Image Link', 'BRANCH', 'EMAIL'
+      'DEALER NAME', 'Customer ADDRESS', 'AGE', 'GENDER', 'Dealer Code',
+      'Attachment URL', 'BRANCH', 'EMAIL', 'STATUS'
     ]);
-    
-    // ═══════════════════════════════════════════════════════════════
-    // ENHANCED SERVER-SIDE VALIDATION - ALL REQUIRED FIELDS
-    // ═══════════════════════════════════════════════════════════════
-    
-    const requiredFields = [];
-    
-    if (!formData.wrcNo || String(formData.wrcNo).trim() === '') 
-      requiredFields.push('WRC Number');
-    if (!formData.engineNo || String(formData.engineNo).trim() === '') 
-      requiredFields.push('Engine Number');
-    if (!formData.firstName || String(formData.firstName).trim() === '') 
-      requiredFields.push('First Name');
-    if (!formData.lastName || String(formData.lastName).trim() === '') 
-      requiredFields.push('Last Name');
-    if (!formData.contactNo || String(formData.contactNo).trim() === '') 
-      requiredFields.push('Contact Number');
-    if (!formData.email || String(formData.email).trim() === '') 
-      requiredFields.push('Email Address');
-    if (!formData.branch || String(formData.branch).trim() === '') 
-      requiredFields.push('Branch');
-    if (!formData.datePurchased || String(formData.datePurchased).trim() === '') 
-      requiredFields.push('Date Purchased');
-    if (!formData.dealerCode || String(formData.dealerCode).trim() === '') 
-      requiredFields.push('Dealer Code');
-    if (!formData.fileUrl || String(formData.fileUrl).trim() === '') 
-      requiredFields.push('File/Document Upload');
-    
-    if (requiredFields.length > 0) {
-      return {
-        success: false,
-        message: 'Server Validation Error: Required fields are missing: ' + requiredFields.join(', ') + '. Please complete all required fields before submitting.'
-      };
+
+    // ---- Validation ----
+    var missing = [];
+    if (!formData.wrcNo       || !String(formData.wrcNo).trim())       missing.push('WRC Number');
+    if (!formData.engineNo    || !String(formData.engineNo).trim())    missing.push('Engine Number');
+    if (!formData.firstName   || !String(formData.firstName).trim())   missing.push('First Name');
+    if (!formData.lastName    || !String(formData.lastName).trim())    missing.push('Last Name');
+    if (!formData.contactNo   || !String(formData.contactNo).trim())   missing.push('Contact Number');
+    if (!formData.email       || !String(formData.email).trim())       missing.push('Email Address');
+    if (!formData.branch      || !String(formData.branch).trim())      missing.push('Branch');
+    if (!formData.datePurchased || !String(formData.datePurchased).trim()) missing.push('Date Purchased');
+    if (!formData.dealerCode  || !String(formData.dealerCode).trim())  missing.push('Dealer Code');
+    if (!formData.fileUrl     || !String(formData.fileUrl).trim())     missing.push('File/Document Upload');
+
+    if (missing.length > 0) {
+      return { success: false, message: 'Required fields missing: ' + missing.join(', ') };
     }
-    
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      return {
-        success: false,
-        message: 'Invalid email address format.'
-      };
+
+    // Email format
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      return { success: false, message: 'Invalid email address format.' };
     }
-    
-    // Check uniqueness of WRC No.
+
+    // Dealer code
+    if (VALID_DEALER_CODES.indexOf(String(formData.dealerCode).trim()) === -1) {
+      return { success: false, message: 'Invalid Dealer Code. Please select a valid code.' };
+    }
+
+    // Uniqueness
     if (isDuplicate_(sheet, WRC_COL_WRC_NO, formData.wrcNo)) {
-      logError_('Duplicate WRC No. from web form', formData.wrcNo, formData.engineNo);
-      return {
-        success: false,
-        message: 'WRC No. "' + formData.wrcNo + '" already exists. Please use a unique WRC number.'
-      };
+      logError_('Duplicate WRC No: ' + formData.wrcNo, formData.wrcNo, formData.engineNo);
+      return { success: false, message: 'WRC No. "' + formData.wrcNo + '" already exists.' };
     }
-    
-    // Check uniqueness of ENGINE No.
     if (isDuplicate_(sheet, WRC_COL_ENGINE_NO, formData.engineNo)) {
-      logError_('Duplicate ENGINE No. from web form', formData.wrcNo, formData.engineNo);
-      return {
-        success: false,
-        message: 'ENGINE No. "' + formData.engineNo + '" already exists. Please use a unique engine number.'
-      };
+      logError_('Duplicate ENGINE No: ' + formData.engineNo, formData.wrcNo, formData.engineNo);
+      return { success: false, message: 'ENGINE No. "' + formData.engineNo + '" already exists.' };
     }
-    
-    // Validate date format (should be yyyymmdd - 8 digits)
-    if (formData.datePurchased && !/^\d{8}$/.test(formData.datePurchased)) {
-      return {
-        success: false,
-        message: 'Invalid date format. Date should be 8 digits (yyyymmdd).'
-      };
+
+    // Date → MMDDYYYY (defence-in-depth; client already converts)
+    var normalizedDate = normalizeDateMMDDYYYY_(formData.datePurchased);
+    if (!/^\d{8}$/.test(normalizedDate)) {
+      return { success: false, message: 'Invalid date format. Expected 8-digit MMDDYYYY.' };
     }
-    
-    // ═══════════════════════════════════════════════════════════════
-    // HEADER-BASED ROW MAPPING - NEVER LOSES OR OVERWRITES COLUMNS
-    // ═══════════════════════════════════════════════════════════════
-    
+
+    // ---- Resolve attachment column (handles legacy 'File/Image Link' sheets) ----
+    var attachInfo = ensureAttachmentColumn_(sheet, 'Attachment URL');
+
+    // ---- Build field map ----
+    var fieldMap = {
+      'WRC No.':                   formData.wrcNo,
+      'ENGINE No.':                formData.engineNo,
+      'First Name':                formData.firstName,
+      'MI':                        formData.mi || '',
+      'LAST NAME':                 formData.lastName,
+      'MUN./CITY':                 formData.munCity || '',
+      'PROVINCE':                  formData.province || '',
+      'CONTACT NO. OF CUSTOMER':   formData.contactNo,
+      'DATE PURCHASED':            normalizedDate,
+      'DEALER NAME':               formData.dealerName || '',
+      'Customer ADDRESS':          formData.customerAddress || '',
+      'AGE':                       formData.age || '',
+      'GENDER':                    formData.gender || '',
+      'Dealer Code':               String(formData.dealerCode).trim(),
+      'BRANCH':                    formData.branch,
+      'EMAIL':                     formData.email,
+      'STATUS':                    'PENDING'
+    };
+    // Use the actual attachment header name (may be legacy variant)
+    fieldMap[attachInfo.name] = formData.fileUrl || '';
+
+    // Required columns that MUST exist (created at end of sheet if missing)
+    var requiredCols = [
+      'WRC No.', 'ENGINE No.', 'First Name', 'LAST NAME',
+      'CONTACT NO. OF CUSTOMER', 'DATE PURCHASED', 'Dealer Code',
+      'BRANCH', 'EMAIL', 'STATUS'
+    ];
+
     try {
-      // Define ALL expected columns with their values
-      const fieldMap = {
-        'WRC No.': formData.wrcNo,
-        'ENGINE No.': formData.engineNo,
-        'First Name': formData.firstName,
-        'MI': formData.mi || '',
-        'LAST NAME': formData.lastName,
-        'MUN./CITY': formData.munCity || '',
-        'PROVINCE': formData.province || '',
-        'CONTACT NO. OF CUSTOMER': formData.contactNo,
-        'DATE PURCHASED': formData.datePurchased,
-        'DEALER NAME': formData.dealerName || '',
-        'Customer ADDRESS': formData.customerAddress || '',
-        'AGE': formData.age || '',
-        'GENDER': formData.gender || '',
-        'Dealer Code': formData.dealerCode,
-        'BRANCH': formData.branch,
-        'EMAIL': formData.email,
-        'Attachment URL': formData.fileUrl || '',
-        'STATUS': 'PENDING'
-      };
-      
-      // Define required columns that MUST exist
-      const requiredColumns = [
-        'WRC No.', 'ENGINE No.', 'First Name', 'LAST NAME',
-        'CONTACT NO. OF CUSTOMER', 'DATE PURCHASED', 'Dealer Code',
-        'BRANCH', 'EMAIL', 'Attachment URL', 'STATUS'
-      ];
-      
-      // Safely append row with header-based mapping
-      const lastRow = appendMappedRow_(sheet, fieldMap, requiredColumns);
-      
-      logInfo_(`WRC submission successful - Row ${lastRow}`, 'WRC', lastRow);
-      
-    } catch (error) {
-      logError_('Failed to append WRC row: ' + error.message, formData.wrcNo, formData.engineNo);
-      return {
-        success: false,
-        message: 'System error: Could not save data to sheet. Please contact administrator.'
-      };
+      var lastRow = appendMappedRow_(sheet, fieldMap, requiredCols);
+      logInfo_('WRC submitted – Row ' + lastRow, SHEET_WRC, lastRow);
+    } catch (err) {
+      logError_('WRC append failed: ' + err.message, formData.wrcNo, formData.engineNo);
+      return { success: false, message: 'System error: Could not save data. Contact administrator.' };
     }
-    
-    // Send PENDING confirmation email with WRC and Engine numbers
+
+    // Send confirmation email
     sendPendingConfirmationEmail(
-      formData.email, 
-      'WRC', 
-      formData.wrcNo, 
-      formData.engineNo,
-      formData.branch,
-      formData.dealerName
+      formData.email, 'WRC', formData.wrcNo, formData.engineNo,
+      formData.branch, formData.dealerName
     );
-    
+
     return {
       success: true,
-      message: 'WRC registration submitted successfully! WRC No: ' + formData.wrcNo + '. A confirmation email has been sent to ' + formData.email + '.'
+      message: 'WRC registration submitted successfully. WRC No: ' + formData.wrcNo
+             + '. Confirmation email sent to ' + formData.email + '.'
     };
-    
-  } catch (error) {
-    logError_('WRC submission error: ' + error.message, formData.wrcNo || '', formData.engineNo || '');
-    return {
-      success: false,
-      message: 'Server error: ' + error.message
-    };
+
+  } catch (err) {
+    logError_('WRC exception: ' + err.message, formData.wrcNo || '', formData.engineNo || '');
+    return { success: false, message: 'Server error: ' + err.message };
   }
 }
 
-/**
- * Submit FSC form data
- * 
- * Validates:
- * - Required fields
- * - Date components (month/day/year)
- * 
- * @param {Object} formData - Form data from client
- * @returns {Object} {success: boolean, message: string}
- */
+// ================================================================
+//  FORM SUBMISSION: FSC
+// ================================================================
+
 function submitFSC(formData) {
   try {
-    // Note: STATUS column already exists in sheet, just adding BRANCH and EMAIL
-    const sheet = getSheet_(SHEET_FSC, [
+    var sheet = getSheet_(SHEET_FSC, [
       'Dealer Transmittal No.', 'Dealer/Mechanic Code', 'WRC Number',
       'Frame Number', 'Coupon Number', 'Actual Mileage',
-      'Repaired Month', 'Repaired Day', 'Repaired Year', 'KSC Code', 
-      'File/Image Link', 'BRANCH', 'EMAIL'
+      'Repaired Month', 'Repaired Day', 'Repaired Year', 'KSC Code',
+      'Dealer Code', 'Attachment URL', 'BRANCH', 'EMAIL', 'STATUS'
     ]);
-    
-    // ═══════════════════════════════════════════════════════════════
-    // ENHANCED SERVER-SIDE VALIDATION - ALL REQUIRED FIELDS
-    // ═══════════════════════════════════════════════════════════════
-    
-    const requiredFields = [];
-    
-    if (!formData.dealerTransNo || String(formData.dealerTransNo).trim() === '') 
-      requiredFields.push('Dealer Transmittal Number');
-    if (!formData.dealerMechCode || String(formData.dealerMechCode).trim() === '') 
-      requiredFields.push('Dealer/Mechanic Code');
-    if (!formData.wrcNumber || String(formData.wrcNumber).trim() === '') 
-      requiredFields.push('WRC Number');
-    if (!formData.frameNumber || String(formData.frameNumber).trim() === '') 
-      requiredFields.push('Frame Number');
-    if (!formData.actualMileage || String(formData.actualMileage).trim() === '') 
-      requiredFields.push('Actual Mileage');
-    if (!formData.repairedMonth || String(formData.repairedMonth).trim() === '') 
-      requiredFields.push('Repaired Date (Month)');
-    if (!formData.repairedDay || String(formData.repairedDay).trim() === '') 
-      requiredFields.push('Repaired Date (Day)');
-    if (!formData.repairedYear || String(formData.repairedYear).trim() === '') 
-      requiredFields.push('Repaired Date (Year)');
-    if (!formData.email || String(formData.email).trim() === '') 
-      requiredFields.push('Email Address');
-    if (!formData.branch || String(formData.branch).trim() === '') 
-      requiredFields.push('Branch');
-    if (!formData.fileUrl || String(formData.fileUrl).trim() === '') 
-      requiredFields.push('File/Document Upload');
-    
-    if (requiredFields.length > 0) {
-      return {
-        success: false,
-        message: 'Server Validation Error: Required fields are missing: ' + requiredFields.join(', ') + '. Please complete all required fields before submitting.'
-      };
+
+    // ---- Validation ----
+    var missing = [];
+    if (!formData.dealerTransNo  || !String(formData.dealerTransNo).trim())  missing.push('Dealer Transmittal Number');
+    if (!formData.dealerMechCode || !String(formData.dealerMechCode).trim()) missing.push('Dealer/Mechanic Code');
+    if (!formData.wrcNumber      || !String(formData.wrcNumber).trim())      missing.push('WRC Number');
+    if (!formData.frameNumber    || !String(formData.frameNumber).trim())    missing.push('Frame Number');
+    if (!formData.actualMileage  || !String(formData.actualMileage).trim())  missing.push('Actual Mileage');
+    if (!formData.repairedMonth  || !String(formData.repairedMonth).trim())  missing.push('Repaired Date (Month)');
+    if (!formData.repairedDay    || !String(formData.repairedDay).trim())    missing.push('Repaired Date (Day)');
+    if (!formData.repairedYear   || !String(formData.repairedYear).trim())   missing.push('Repaired Date (Year)');
+    if (!formData.email          || !String(formData.email).trim())          missing.push('Email Address');
+    if (!formData.branch         || !String(formData.branch).trim())         missing.push('Branch');
+    if (!formData.fileUrl        || !String(formData.fileUrl).trim())        missing.push('File/Document Upload');
+
+    if (missing.length > 0) {
+      return { success: false, message: 'Required fields missing: ' + missing.join(', ') };
     }
-    
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      return {
-        success: false,
-        message: 'Invalid email address format.'
-      };
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      return { success: false, message: 'Invalid email address format.' };
     }
-    
-    // Validate date components
-    if (!formData.repairedMonth || !formData.repairedDay || !formData.repairedYear) {
-      return {
-        success: false,
-        message: 'Invalid repair date. Please select a valid date.'
-      };
+
+    var dealerCode = String(formData.dealerMechCode).trim();
+    if (VALID_DEALER_CODES.indexOf(dealerCode) === -1) {
+      return { success: false, message: 'Invalid Dealer/Mechanic Code.' };
     }
-    
-    // Validate actual mileage is a whole number
-    if (formData.actualMileage && !Number.isInteger(Number(formData.actualMileage))) {
-      return {
-        success: false,
-        message: 'Actual mileage must be a whole number (no decimals).'
-      };
+
+    if (formData.actualMileage && isNaN(Number(formData.actualMileage))) {
+      return { success: false, message: 'Actual mileage must be a number.' };
     }
-    
-    // Validate coupon number if provided (must be 1, 2, 3, or 4)
-    if (formData.couponNumber && !['1', '2', '3', '4'].includes(formData.couponNumber)) {
-      return {
-        success: false,
-        message: 'Invalid coupon number. Must be 1, 2, 3, or 4.'
-      };
+
+    if (formData.couponNumber && ['1','2','3','4'].indexOf(String(formData.couponNumber)) === -1) {
+      return { success: false, message: 'Coupon number must be 1, 2, 3, or 4.' };
     }
-    
-    // ═══════════════════════════════════════════════════════════════
-    // HEADER-BASED ROW MAPPING - NEVER LOSES OR OVERWRITES COLUMNS
-    // ═══════════════════════════════════════════════════════════════
-    
+
+    // ---- Resolve attachment column ----
+    var attachInfo = ensureAttachmentColumn_(sheet, 'Attachment URL');
+
+    // ---- Build field map ----
+    var fieldMap = {
+      'Dealer Transmittal No.': formData.dealerTransNo,
+      'Dealer/Mechanic Code':   dealerCode,
+      'WRC Number':             formData.wrcNumber,
+      'Frame Number':           formData.frameNumber,
+      'Coupon Number':          formData.couponNumber || '',
+      'Actual Mileage':         formData.actualMileage,
+      'Repaired Month':         formData.repairedMonth,
+      'Repaired Day':           formData.repairedDay,
+      'Repaired Year':          formData.repairedYear,
+      'KSC Code':               formData.kscCode || '',
+      'Dealer Code':            dealerCode,
+      'BRANCH':                 formData.branch,
+      'EMAIL':                  formData.email,
+      'STATUS':                 'PENDING'
+    };
+    fieldMap[attachInfo.name] = formData.fileUrl || '';
+
+    var requiredCols = [
+      'Dealer Transmittal No.', 'Dealer/Mechanic Code', 'WRC Number',
+      'Frame Number', 'Actual Mileage', 'Repaired Month', 'Repaired Day',
+      'Repaired Year', 'Dealer Code', 'BRANCH', 'EMAIL', 'STATUS'
+    ];
+
     try {
-      // Define ALL expected columns with their values
-      const fieldMap = {
-        'Dealer Transmittal No.': formData.dealerTransNo,
-        'Dealer/Mechanic Code': formData.dealerMechCode,
-        'WRC Number': formData.wrcNumber,
-        'Frame Number': formData.frameNumber,
-        'Coupon Number': formData.couponNumber || '',
-        'Actual Mileage': formData.actualMileage,
-        'Repaired Month': formData.repairedMonth,
-        'Repaired Day': formData.repairedDay,
-        'Repaired Year': formData.repairedYear,
-        'KSC Code': formData.kscCode || '',
-        'BRANCH': formData.branch,
-        'EMAIL': formData.email,
-        'Attachment URL': formData.fileUrl || '',
-        'STATUS': 'PENDING'
-      };
-      
-      // Define required columns that MUST exist
-      const requiredColumns = [
-        'Dealer Transmittal No.', 'Dealer/Mechanic Code', 'WRC Number',
-        'Frame Number', 'Actual Mileage', 'Repaired Month', 'Repaired Day',
-        'Repaired Year', 'BRANCH', 'EMAIL', 'Attachment URL', 'STATUS'
-      ];
-      
-      // Safely append row with header-based mapping
-      const lastRow = appendMappedRow_(sheet, fieldMap, requiredColumns);
-      
-      logInfo_(`FSC submission successful - Row ${lastRow}`, 'FSC', lastRow);
-      
-    } catch (error) {
-      logError_('Failed to append FSC row: ' + error.message, formData.wrcNumber, '');
-      return {
-        success: false,
-        message: 'System error: Could not save data to sheet. Please contact administrator.'
-      };
+      var lastRow = appendMappedRow_(sheet, fieldMap, requiredCols);
+      logInfo_('FSC submitted – Row ' + lastRow, SHEET_FSC, lastRow);
+    } catch (err) {
+      logError_('FSC append failed: ' + err.message, formData.wrcNumber, '');
+      return { success: false, message: 'System error: Could not save data. Contact administrator.' };
     }
-    
-    // Send PENDING confirmation email with WRC and Frame numbers
+
     sendPendingConfirmationEmail(
-      formData.email, 
-      'FSC', 
-      formData.wrcNumber, 
-      formData.frameNumber,
-      formData.branch,
-      formData.dealerMechCode
+      formData.email, 'FSC', formData.wrcNumber, formData.frameNumber,
+      formData.branch, dealerCode
     );
-    
+
     return {
       success: true,
-      message: 'FSC entry submitted successfully! WRC Number: ' + formData.wrcNumber + '. A confirmation email has been sent to ' + formData.email + '.'
+      message: 'FSC entry submitted successfully. WRC Number: ' + formData.wrcNumber
+             + '. Confirmation email sent to ' + formData.email + '.'
     };
-    
-  } catch (error) {
-    logError_('FSC submission error: ' + error.message, formData.wrcNumber || '', '');
-    return {
-      success: false,
-      message: 'Server error: ' + error.message
-    };
+
+  } catch (err) {
+    logError_('FSC exception: ' + err.message, formData.wrcNumber || '', '');
+    return { success: false, message: 'Server error: ' + err.message };
   }
 }
 
-/**
- * Submit WLP form data
- * 
- * Validates:
- * - Required fields
- * - Date components (month/day/year)
- * 
- * @param {Object} formData - Form data from client
- * @returns {Object} {success: boolean, message: string}
- */
+// ================================================================
+//  FORM SUBMISSION: WLP
+// ================================================================
+
 function submitWLP(formData) {
   try {
-    // Note: STATUS column already exists in sheet, just adding BRANCH and EMAIL
-    const sheet = getSheet_(SHEET_WLP, [
+    var sheet = getSheet_(SHEET_WLP, [
       'WRS Number', 'Repair Acknowledged Month', 'Repair Acknowledged Day',
-      'Repair Acknowledged Year', 'Acknowledged By: (Customer Name)', 
-      'Dealer/Mechanic Code', 'File/Image Link', 'BRANCH', 'EMAIL'
+      'Repair Acknowledged Year', 'Acknowledged By: (Customer Name)',
+      'Dealer/Mechanic Code', 'Dealer Code',
+      'Attachment URL', 'BRANCH', 'EMAIL', 'STATUS'
     ]);
-    
-    // ═══════════════════════════════════════════════════════════════
-    // ENHANCED SERVER-SIDE VALIDATION - ALL REQUIRED FIELDS
-    // ═══════════════════════════════════════════════════════════════
-    
-    const requiredFields = [];
-    
-    if (!formData.wrsNumber || String(formData.wrsNumber).trim() === '') 
-      requiredFields.push('WRS Number');
-    if (!formData.repairAckMonth || String(formData.repairAckMonth).trim() === '') 
-      requiredFields.push('Repair Acknowledged Date (Month)');
-    if (!formData.repairAckDay || String(formData.repairAckDay).trim() === '') 
-      requiredFields.push('Repair Acknowledged Date (Day)');
-    if (!formData.repairAckYear || String(formData.repairAckYear).trim() === '') 
-      requiredFields.push('Repair Acknowledged Date (Year)');
-    if (!formData.acknowledgedBy || String(formData.acknowledgedBy).trim() === '') 
-      requiredFields.push('Acknowledged By (Customer Name)');
-    if (!formData.dealerMechCode || String(formData.dealerMechCode).trim() === '') 
-      requiredFields.push('Dealer/Mechanic Code');
-    if (!formData.email || String(formData.email).trim() === '') 
-      requiredFields.push('Email Address');
-    if (!formData.branch || String(formData.branch).trim() === '') 
-      requiredFields.push('Branch');
-    if (!formData.fileUrl || String(formData.fileUrl).trim() === '') 
-      requiredFields.push('File/Document Upload');
-    
-    if (requiredFields.length > 0) {
-      return {
-        success: false,
-        message: 'Server Validation Error: Required fields are missing: ' + requiredFields.join(', ') + '. Please complete all required fields before submitting.'
-      };
+
+    // ---- Validation ----
+    var missing = [];
+    if (!formData.wrsNumber      || !String(formData.wrsNumber).trim())      missing.push('WRS Number');
+    if (!formData.repairAckMonth || !String(formData.repairAckMonth).trim()) missing.push('Repair Acknowledged Date (Month)');
+    if (!formData.repairAckDay   || !String(formData.repairAckDay).trim())   missing.push('Repair Acknowledged Date (Day)');
+    if (!formData.repairAckYear  || !String(formData.repairAckYear).trim())  missing.push('Repair Acknowledged Date (Year)');
+    if (!formData.acknowledgedBy || !String(formData.acknowledgedBy).trim()) missing.push('Acknowledged By');
+    if (!formData.email          || !String(formData.email).trim())          missing.push('Email Address');
+    if (!formData.branch         || !String(formData.branch).trim())         missing.push('Branch');
+    if (!formData.fileUrl        || !String(formData.fileUrl).trim())        missing.push('File/Document Upload');
+
+    if (missing.length > 0) {
+      return { success: false, message: 'Required fields missing: ' + missing.join(', ') };
     }
-    
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      return {
-        success: false,
-        message: 'Invalid email address format.'
-      };
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      return { success: false, message: 'Invalid email address format.' };
     }
-    
-    // Validate date components
-    if (!formData.repairAckMonth || !formData.repairAckDay || !formData.repairAckYear) {
-      return {
-        success: false,
-        message: 'Invalid acknowledgment date. Please select a valid date.'
-      };
+
+    // Default Dealer Code for WLP (no UI field)
+    var dealerCode = formData.dealerMechCode
+      ? String(formData.dealerMechCode).trim()
+      : DEFAULT_DEALER_CODE;
+    if (!dealerCode || VALID_DEALER_CODES.indexOf(dealerCode) === -1) {
+      dealerCode = DEFAULT_DEALER_CODE;
     }
-    
-    // ═══════════════════════════════════════════════════════════════
-    // HEADER-BASED ROW MAPPING - NEVER LOSES OR OVERWRITES COLUMNS
-    // ═══════════════════════════════════════════════════════════════
-    
+
+    // ---- Resolve attachment column ----
+    var attachInfo = ensureAttachmentColumn_(sheet, 'Attachment URL');
+
+    // ---- Build field map ----
+    var fieldMap = {
+      'WRS Number':                          formData.wrsNumber,
+      'Repair Acknowledged Month':           formData.repairAckMonth,
+      'Repair Acknowledged Day':             formData.repairAckDay,
+      'Repair Acknowledged Year':            formData.repairAckYear,
+      'Acknowledged By: (Customer Name)':    formData.acknowledgedBy,
+      'Dealer/Mechanic Code':                dealerCode,
+      'Dealer Code':                         dealerCode,
+      'BRANCH':                              formData.branch,
+      'EMAIL':                               formData.email,
+      'STATUS':                              'PENDING'
+    };
+    fieldMap[attachInfo.name] = formData.fileUrl || '';
+
+    var requiredCols = [
+      'WRS Number', 'Repair Acknowledged Month', 'Repair Acknowledged Day',
+      'Repair Acknowledged Year', 'Acknowledged By: (Customer Name)',
+      'Dealer/Mechanic Code', 'Dealer Code', 'BRANCH', 'EMAIL', 'STATUS'
+    ];
+
     try {
-      // Define ALL expected columns with their values
-      const fieldMap = {
-        'WRS Number': formData.wrsNumber,
-        'Repair Acknowledged Month': formData.repairAckMonth,
-        'Repair Acknowledged Day': formData.repairAckDay,
-        'Repair Acknowledged Year': formData.repairAckYear,
-        'Acknowledged By: (Customer Name)': formData.acknowledgedBy,
-        'Dealer/Mechanic Code': formData.dealerMechCode,
-        'BRANCH': formData.branch,
-        'EMAIL': formData.email,
-        'Attachment URL': formData.fileUrl || '',
-        'STATUS': 'PENDING'
-      };
-      
-      // Define required columns that MUST exist
-      const requiredColumns = [
-        'WRS Number', 'Repair Acknowledged Month', 'Repair Acknowledged Day',
-        'Repair Acknowledged Year', 'Acknowledged By: (Customer Name)',
-        'Dealer/Mechanic Code', 'BRANCH', 'EMAIL', 'Attachment URL', 'STATUS'
-      ];
-      
-      // Safely append row with header-based mapping
-      const lastRow = appendMappedRow_(sheet, fieldMap, requiredColumns);
-      
-      logInfo_(`WLP submission successful - Row ${lastRow}`, 'WLP', lastRow);
-      
-    } catch (error) {
-      logError_('Failed to append WLP row: ' + error.message, formData.wrsNumber, '');
-      return {
-        success: false,
-        message: 'System error: Could not save data to sheet. Please contact administrator.'
-      };
+      var lastRow = appendMappedRow_(sheet, fieldMap, requiredCols);
+      logInfo_('WLP submitted – Row ' + lastRow, SHEET_WLP, lastRow);
+    } catch (err) {
+      logError_('WLP append failed: ' + err.message, formData.wrsNumber, '');
+      return { success: false, message: 'System error: Could not save data. Contact administrator.' };
     }
-    
-    // Send PENDING confirmation email with WRS number
+
     sendPendingConfirmationEmail(
-      formData.email, 
-      'WLP', 
-      formData.wrsNumber, 
-      '',  // No engine number for WLP
-      formData.branch,
-      formData.dealerMechCode
+      formData.email, 'WLP', formData.wrsNumber, '',
+      formData.branch, dealerCode
     );
-    
+
     return {
       success: true,
-      message: 'WLP acknowledgment submitted successfully! WRS Number: ' + formData.wrsNumber + '. A confirmation email has been sent to ' + formData.email + '.'
+      message: 'WLP acknowledgment submitted successfully. WRS Number: ' + formData.wrsNumber
+             + '. Confirmation email sent to ' + formData.email + '.'
     };
-    
-  } catch (error) {
-    logError_('WLP submission error: ' + error.message, '', '');
-    return {
-      success: false,
-      message: 'Server error: ' + error.message
-    };
+
+  } catch (err) {
+    logError_('WLP exception: ' + err.message, formData.wrsNumber || '', '');
+    return { success: false, message: 'Server error: ' + err.message };
   }
 }
 
-// ════════════════════════════════════════════════════════════
-//  OPTIONAL: DYNAMIC DROPDOWN DATA
-// ════════════════════════════════════════════════════════════
+// ================================================================
+//  DYNAMIC DROPDOWN DATA
+// ================================================================
 
-/**
- * Get list of provinces for dropdown population
- * @returns {Array<string>}
- */
 function getProvinces() {
   return [
-    'Metro Manila', 'Cebu', 'Davao', 'Rizal', 'Bulacan', 'Cavite', 'Laguna',
-    'Pampanga', 'Batangas', 'Quezon', 'Pangasinan', 'Iloilo', 'Negros Occidental',
-    'Leyte', 'Misamis Oriental', 'Albay', 'Cagayan', 'Isabela', 'Nueva Ecija',
-    'Tarlac', 'Zambales', 'Palawan', 'Bohol', 'Samar', 'Cotabato'
+    'Metro Manila', 'Cebu', 'Davao', 'Rizal', 'Bulacan', 'Cavite',
+    'Laguna', 'Pampanga', 'Batangas', 'Quezon', 'Pangasinan', 'Iloilo',
+    'Negros Occidental', 'Leyte', 'Misamis Oriental', 'Albay', 'Cagayan',
+    'Isabela', 'Nueva Ecija', 'Tarlac', 'Zambales', 'Palawan', 'Bohol',
+    'Samar', 'Cotabato'
   ];
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  TESTING & DEBUGGING UTILITIES
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * TEST FUNCTION: Simulate STATUS change to test email trigger
- * 
- * HOW TO USE:
- * 1. Open Apps Script Editor
- * 2. Select this function from dropdown
- * 3. Click Run
- * 4. Check your email and Log sheet
- */
-function TEST_EmailTrigger() {
-  const TEST_CONFIG = {
-    sheetName: 'WRC',  // Change to 'FSC' or 'WLP' to test those
-    testRow: 2,        // Row to use for testing (must have email address)
-    testEmail: 'kenji.devcodes@gmail.com'  // Override email for testing
-  };
-  
-  Logger.log('═══════════════════════════════════════════════');
-  Logger.log('  EMAIL TRIGGER TEST - STARTING');
-  Logger.log('═══════════════════════════════════════════════');
-  
-  try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const sheet = ss.getSheetByName(TEST_CONFIG.sheetName);
-    
-    if (!sheet) {
-      Logger.log('✗ ERROR: Sheet not found: ' + TEST_CONFIG.sheetName);
-      return;
-    }
-    
-    // Find columns
-    const statusCol = findColumnByHeader_(sheet, 'STATUS');
-    const emailCol = findColumnByHeader_(sheet, 'EMAIL');
-    
-    Logger.log(`✓ Found STATUS column: ${statusCol}`);
-    Logger.log(`✓ Found EMAIL column: ${emailCol}`);
-    
-    if (statusCol === 0 || emailCol === 0) {
-      Logger.log('✗ ERROR: Required columns not found');
-      return;
-    }
-    
-    // Get current values
-    const currentEmail = sheet.getRange(TEST_CONFIG.testRow, emailCol).getValue();
-    const identifier = sheet.getRange(TEST_CONFIG.testRow, 1).getValue();
-    
-    Logger.log(`Row ${TEST_CONFIG.testRow} identifier: ${identifier}`);
-    Logger.log(`Row ${TEST_CONFIG.testRow} email: ${currentEmail}`);
-    
-    // Use test email or actual email
-    const targetEmail = TEST_CONFIG.testEmail || currentEmail;
-    
-    if (!targetEmail) {
-      Logger.log('✗ ERROR: No email address available for testing');
-      return;
-    }
-    
-    // Temporarily set test email if different
-    if (TEST_CONFIG.testEmail && TEST_CONFIG.testEmail !== currentEmail) {
-      sheet.getRange(TEST_CONFIG.testRow, emailCol).setValue(TEST_CONFIG.testEmail);
-      Logger.log(`✓ Set test email: ${TEST_CONFIG.testEmail}`);
-    }
-    
-    // Get WRC and Engine numbers from test row
-    let wrcNum = '';
-    let engineNum = '';
-    if (TEST_CONFIG.sheetName === 'WRC') {
-      wrcNum = sheet.getRange(TEST_CONFIG.testRow, 1).getValue();  // WRC No.
-      engineNum = sheet.getRange(TEST_CONFIG.testRow, 2).getValue();  // Engine No.
-    } else if (TEST_CONFIG.sheetName === 'FSC') {
-      const wrcCol = findColumnByHeader_(sheet, 'WRC NUMBER');
-      const frameCol = findColumnByHeader_(sheet, 'FRAME NUMBER');
-      if (wrcCol > 0) wrcNum = sheet.getRange(TEST_CONFIG.testRow, wrcCol).getValue();
-      if (frameCol > 0) engineNum = sheet.getRange(TEST_CONFIG.testRow, frameCol).getValue();
-    } else if (TEST_CONFIG.sheetName === 'WLP') {
-      wrcNum = sheet.getRange(TEST_CONFIG.testRow, 1).getValue();  // WRS Number
-    }
-    
-    // Send test email
-    Logger.log(`→ Sending test email to: ${targetEmail}`);
-    Logger.log(`   WRC/WRS Number: ${wrcNum}`);
-    Logger.log(`   Engine/Frame Number: ${engineNum}`);
-    
-    const result = sendTransmittedEmail_(
-      targetEmail,
-      TEST_CONFIG.sheetName,
-      wrcNum,
-      engineNum,
-      'Test Branch',
-      'Test Dealer'
-    );
-    
-    if (result.success) {
-      Logger.log('═══════════════════════════════════════════════');
-      Logger.log('  ✓ SUCCESS! Email sent via ' + result.method);
-      Logger.log('  Check inbox: ' + targetEmail);
-      Logger.log('═══════════════════════════════════════════════');
-    } else {
-      Logger.log('═══════════════════════════════════════════════');
-      Logger.log('  ✗ FAILED: ' + result.error);
-      Logger.log('═══════════════════════════════════════════════');
-    }
-    
-    // Restore original email if changed
-    if (TEST_CONFIG.testEmail && TEST_CONFIG.testEmail !== currentEmail) {
-      sheet.getRange(TEST_CONFIG.testRow, emailCol).setValue(currentEmail);
-      Logger.log(`✓ Restored original email: ${currentEmail}`);
-    }
-    
-  } catch (error) {
-    Logger.log('═══════════════════════════════════════════════');
-    Logger.log('  ✗ TEST EXCEPTION: ' + error.message);
-    Logger.log('═══════════════════════════════════════════════');
-  }
-}
-
-/**
- * DIAGNOSTIC: Check trigger installation and permissions
- */
-function DIAGNOSTIC_CheckTriggerSetup() {
-  Logger.log('═══════════════════════════════════════════════');
-  Logger.log('  TRIGGER DIAGNOSTIC');
-  Logger.log('═══════════════════════════════════════════════');
-  
-  // Check installed triggers
-  const triggers = ScriptApp.getProjectTriggers();
-  Logger.log(`\nInstalled Triggers: ${triggers.length}`);
-  
-  let hasOnEditTrigger = false;
-  triggers.forEach((trigger, index) => {
-    Logger.log(`\nTrigger ${index + 1}:`);
-    Logger.log(`  - Handler: ${trigger.getHandlerFunction()}`);
-    Logger.log(`  - Event Type: ${trigger.getEventType()}`);
-    Logger.log(`  - Source: ${trigger.getTriggerSource()}`);
-    
-    if (trigger.getHandlerFunction() === 'onEdit' && 
-        trigger.getEventType() === ScriptApp.EventType.ON_EDIT) {
-      hasOnEditTrigger = true;
-    }
-  });
-  
-  Logger.log('\n═══════════════════════════════════════════════');
-  if (hasOnEditTrigger) {
-    Logger.log('  ✓ onEdit INSTALLABLE trigger found');
-  } else {
-    Logger.log('  ✗ WARNING: No installable onEdit trigger found!');
-    Logger.log('  → You MUST install trigger for emails to work');
-    Logger.log('  → Go to: Triggers → + Add Trigger → onEdit');
-  }
-  Logger.log('═══════════════════════════════════════════════');
-  
-  // Check permissions
-  Logger.log('\nPermission Check:');
-  try {
-    const testEmail = Session.getActiveUser().getEmail();
-    Logger.log(`  ✓ Can access user email: ${testEmail}`);
-  } catch (e) {
-    Logger.log('  ✗ Cannot access user info');
-  }
-  
-  // Check spreadsheet access
-  try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    Logger.log(`  ✓ Can access spreadsheet: ${ss.getName()}`);
-  } catch (e) {
-    Logger.log('  ✗ Cannot access spreadsheet: ' + e.message);
-  }
-  
-  // Check email quota
-  try {
-    const quota = MailApp.getRemainingDailyQuota();
-    Logger.log(`  ✓ Email quota remaining today: ${quota}`);
-    if (quota === 0) {
-      Logger.log('  ⚠ WARNING: Email quota exhausted!');
-    }
-  } catch (e) {
-    Logger.log('  ? Cannot check email quota: ' + e.message);
-  }
-  
-  Logger.log('\n═══════════════════════════════════════════════');
-}
-
-/**
- * DIAGNOSTIC: View recent logs
- */
-function DIAGNOSTIC_ViewRecentLogs() {
-  Logger.log('═══════════════════════════════════════════════');
-  Logger.log('  RECENT LOG ENTRIES');
-  Logger.log('═══════════════════════════════════════════════');
-  
-  try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const logSheet = ss.getSheetByName('Log');
-    
-    if (!logSheet) {
-      Logger.log('  No Log sheet found');
-      return;
-    }
-    
-    const lastRow = logSheet.getLastRow();
-    if (lastRow <= 1) {
-      Logger.log('  Log sheet is empty');
-      return;
-    }
-    
-    // Get last 10 rows
-    const startRow = Math.max(2, lastRow - 9);
-    const numRows = lastRow - startRow + 1;
-    const data = logSheet.getRange(startRow, 1, numRows, 6).getValues();
-    
-    data.forEach((row, index) => {
-      Logger.log(`\n[${startRow + index}] ${row[0]}`);
-      Logger.log(`  Level: ${row[1]}`);
-      Logger.log(`  Sheet: ${row[2]} | Row: ${row[3]}`);
-      Logger.log(`  Message: ${row[4]}`);
-    });
-    
-    Logger.log('\n═══════════════════════════════════════════════');
-    Logger.log(`  Showing last ${numRows} entries of ${lastRow - 1} total`);
-    Logger.log('═══════════════════════════════════════════════');
-    
-  } catch (error) {
-    Logger.log('  Error reading logs: ' + error.message);
-  }
-}
-
-/**
- * UTILITY: Clear old log entries (keep last 100)
- */
-function UTILITY_CleanupOldLogs() {
-  try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const logSheet = ss.getSheetByName('Log');
-    
-    if (!logSheet) {
-      Logger.log('No Log sheet found');
-      return;
-    }
-    
-    const lastRow = logSheet.getLastRow();
-    if (lastRow <= 101) {
-      Logger.log('Less than 100 log entries - no cleanup needed');
-      return;
-    }
-    
-    const rowsToDelete = lastRow - 101; // Keep last 100 + header
-    logSheet.deleteRows(2, rowsToDelete);
-    
-    Logger.log(`✓ Deleted ${rowsToDelete} old log entries. Kept last 100.`);
-    
-  } catch (error) {
-    Logger.log('Error cleaning logs: ' + error.message);
-  }
-}
-
-/**
- * Get list of dealer codes
- * You can modify this to read from a "Dealers" sheet
- * @returns {Array<string>}
- */
 function getDealerCodes() {
-  // Example: Read from a separate sheet
-  // const dealerSheet = getSheet_('Dealers');
-  // const data = dealerSheet.getRange(2, 1, dealerSheet.getLastRow() - 1, 1).getValues();
-  // return data.map(row => row[0]).filter(code => code);
-  
-  // Sample static data
-  return ['D001', 'D002', 'D003', 'D004', 'D005'];
+  return VALID_DEALER_CODES;
 }
 
-// ════════════════════════════════════════════════════════════
+// ================================================================
 //  FILE UPLOAD HANDLER
-// ════════════════════════════════════════════════════════════
+// ================================================================
 
-/**
- * Upload file to Google Drive and return public URL
- * Creates a folder structure: FSC_WRC_WLP_Files > [FORM_TYPE]
- * @param {Object} fileData - Contains name, type, data (base64), formType
- * @returns {Object} - {success: boolean, url: string, message: string}
- */
 function uploadFile(fileData) {
   try {
-    // Get or create root folder
-    const rootFolderName = 'FSC_WRC_WLP_Files';
-    let rootFolder;
-    const folders = DriveApp.getFoldersByName(rootFolderName);
-    if (folders.hasNext()) {
-      rootFolder = folders.next();
-    } else {
-      rootFolder = DriveApp.createFolder(rootFolderName);
-    }
-    
-    // Get or create form-specific subfolder
-    const formFolderName = fileData.formType; // WRC, FSC, or WLP
-    let formFolder;
-    const subFolders = rootFolder.getFoldersByName(formFolderName);
-    if (subFolders.hasNext()) {
-      formFolder = subFolders.next();
-    } else {
-      formFolder = rootFolder.createFolder(formFolderName);
-    }
-    
-    // Decode base64 data and create blob
-    const bytes = Utilities.base64Decode(fileData.data);
-    const blob = Utilities.newBlob(bytes, fileData.type, fileData.name);
-    
-    // Create file in Drive
-    const file = formFolder.createFile(blob);
-    
-    // Make file publicly accessible (optional - adjust based on security needs)
+    var ROOT_FOLDER = 'FSC_WRC_WLP_Files';
+
+    // Find or create root folder
+    var rootFolder;
+    var folders = DriveApp.getFoldersByName(ROOT_FOLDER);
+    rootFolder = folders.hasNext() ? folders.next() : DriveApp.createFolder(ROOT_FOLDER);
+
+    // Find or create form-type subfolder
+    var subName = fileData.formType || 'OTHER';
+    var formFolder;
+    var subs = rootFolder.getFoldersByName(subName);
+    formFolder = subs.hasNext() ? subs.next() : rootFolder.createFolder(subName);
+
+    // Create file from base64
+    var bytes = Utilities.base64Decode(fileData.data);
+    var blob  = Utilities.newBlob(bytes, fileData.type, fileData.name);
+    var file  = formFolder.createFile(blob);
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-    
-    // Return file URL
-    const fileUrl = file.getUrl();
-    
+
     return {
       success: true,
-      url: fileUrl,
-      message: 'File uploaded successfully',
-      fileId: file.getId()
+      url: file.getUrl(),
+      fileId: file.getId(),
+      message: 'File uploaded successfully.'
     };
-    
-  } catch (error) {
-    Logger.log('File upload error: ' + error.toString());
-    return {
-      success: false,
-      url: '',
-      message: 'File upload failed: ' + error.toString()
-    };
+  } catch (err) {
+    Logger.log('Upload error: ' + err.toString());
+    return { success: false, url: '', message: 'Upload failed: ' + err.toString() };
   }
 }
 
-// ════════════════════════════════════════════════════════════
-//  AUTOMATED EMAIL NOTIFICATIONS
-// ════════════════════════════════════════════════════════════
+// ================================================================
+//  EMAIL: PENDING CONFIRMATION
+// ================================================================
 
 /**
- * Send PENDING confirmation email immediately after form submission
- * 
- * @param {string} email - Recipient email address
- * @param {string} formType - WRC, FSC, or WLP
- * @param {string} wrcNumber - WRC Number or WRS Number
- * @param {string} engineNumber - Engine Number or Frame Number (optional)
- * @param {string} branch - Branch name (optional)
- * @param {string} dealerName - Dealer name (optional)
+ * Send PENDING confirmation email immediately after form submission.
  */
-function sendPendingConfirmationEmail(email, formType, wrcNumber, engineNumber, branch, dealerName) {
+function sendPendingConfirmationEmail(email, formType, primaryRef, secondaryRef, branch, dealerName) {
   try {
-    if (!email || String(email).trim() === '') {
-      Logger.log('Cannot send pending email: empty email address');
-      return;
-    }
-    
-    const subject = 'Application Received - PENDING';
-    
-    // Build dynamic field rows
-    let fieldRows = '';
+    if (!email || String(email).trim() === '') return;
+
+    var subject = 'Application Received – PENDING';
+
+    // Build reference rows for the email body
+    var refRows = '';
     if (formType === 'WRC') {
-      fieldRows = `
-        <tr><td class="field-label">WRC Number:</td><td class="field-value">${wrcNumber || 'N/A'}</td></tr>
-        <tr><td class="field-label">Engine Number:</td><td class="field-value">${engineNumber || 'N/A'}</td></tr>
-      `;
+      refRows += '<tr><td style="font-weight:bold;color:#555;padding:12px 15px;border-bottom:1px solid #e9ecef;width:40%">WRC Number</td>'
+               + '<td style="color:#333;padding:12px 15px;border-bottom:1px solid #e9ecef">' + (primaryRef || 'N/A') + '</td></tr>';
+      refRows += '<tr><td style="font-weight:bold;color:#555;padding:12px 15px;border-bottom:1px solid #e9ecef;width:40%">Engine Number</td>'
+               + '<td style="color:#333;padding:12px 15px;border-bottom:1px solid #e9ecef">' + (secondaryRef || 'N/A') + '</td></tr>';
     } else if (formType === 'FSC') {
-      fieldRows = `
-        <tr><td class="field-label">WRC Number:</td><td class="field-value">${wrcNumber || 'N/A'}</td></tr>
-        <tr><td class="field-label">Frame Number:</td><td class="field-value">${engineNumber || 'N/A'}</td></tr>
-      `;
+      refRows += '<tr><td style="font-weight:bold;color:#555;padding:12px 15px;border-bottom:1px solid #e9ecef;width:40%">WRC Number</td>'
+               + '<td style="color:#333;padding:12px 15px;border-bottom:1px solid #e9ecef">' + (primaryRef || 'N/A') + '</td></tr>';
+      refRows += '<tr><td style="font-weight:bold;color:#555;padding:12px 15px;border-bottom:1px solid #e9ecef;width:40%">Frame Number</td>'
+               + '<td style="color:#333;padding:12px 15px;border-bottom:1px solid #e9ecef">' + (secondaryRef || 'N/A') + '</td></tr>';
     } else if (formType === 'WLP') {
-      fieldRows = `
-        <tr><td class="field-label">WRS Number:</td><td class="field-value">${wrcNumber || 'N/A'}</td></tr>
-      `;
+      refRows += '<tr><td style="font-weight:bold;color:#555;padding:12px 15px;border-bottom:1px solid #e9ecef;width:40%">WRS Number</td>'
+               + '<td style="color:#333;padding:12px 15px;border-bottom:1px solid #e9ecef">' + (primaryRef || 'N/A') + '</td></tr>';
     }
-    
     if (branch) {
-      fieldRows += `<tr><td class="field-label">Branch:</td><td class="field-value">${branch}</td></tr>`;
+      refRows += '<tr><td style="font-weight:bold;color:#555;padding:12px 15px;border-bottom:1px solid #e9ecef;width:40%">Branch</td>'
+               + '<td style="color:#333;padding:12px 15px;border-bottom:1px solid #e9ecef">' + branch + '</td></tr>';
     }
     if (dealerName) {
-      fieldRows += `<tr><td class="field-label">Dealer Name:</td><td class="field-value">${dealerName}</td></tr>`;
+      refRows += '<tr><td style="font-weight:bold;color:#555;padding:12px 15px;border-bottom:1px solid #e9ecef;width:40%">Dealer</td>'
+               + '<td style="color:#333;padding:12px 15px;border-bottom:1px solid #e9ecef">' + dealerName + '</td></tr>';
     }
-    
-    const htmlBody = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 0;
-            background-color: #f4f4f4;
-          }
-          .container {
-            background-color: #ffffff;
-            margin: 20px auto;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-          }
-          .logo {
-            text-align: center;
-            padding: 20px;
-            background-color: #ffffff;
-          }
-          .logo img {
-            max-width: 200px;
-            height: auto;
-          }
-          .header {
-            background-color: #fff3cd;
-            color: #856404;
-            padding: 25px;
-            text-align: center;
-            border-bottom: 4px solid #ffc107;
-          }
-          .header h2 {
-            margin: 0;
-            font-size: 24px;
-          }
-          .content {
-            padding: 30px;
-          }
-          .info-table {
-            width: 100%;
-            background-color: #f8f9fa;
-            border-radius: 6px;
-            margin: 20px 0;
-            border-collapse: collapse;
-          }
-          .info-table td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #e9ecef;
-          }
-          .info-table tr:last-child td {
-            border-bottom: none;
-          }
-          .field-label {
-            font-weight: bold;
-            color: #555;
-            width: 40%;
-          }
-          .field-value {
-            color: #333;
-          }
-          .status-box {
-            background-color: #fff3cd;
-            border-left: 4px solid #ffc107;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 4px;
-          }
-          .footer {
-            background-color: #f8f9fa;
-            padding: 20px;
-            text-align: center;
-            font-size: 0.9em;
-            color: #666;
-            border-top: 1px solid #ddd;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="logo">
-            <img src="https://i.imgur.com/nGVvR3v.png" alt="Giant Moto Pro Logo" />
-          </div>
-          
-          <div class="header">
-            <h2>Application Status: PENDING</h2>
-          </div>
-          
-          <div class="content">
-            <p>Dear Applicant,</p>
-            
-            <p>Thank you for your submission to the <strong>FSC / WRC / WLP Management System</strong>.</p>
-            
-            <table class="info-table">
-              <tr><td class="field-label">Form Type:</td><td class="field-value"><strong>${formType}</strong></td></tr>
-              ${fieldRows}
-              <tr><td class="field-label">Status:</td><td class="field-value"><strong>PENDING</strong></td></tr>
-            </table>
-            
-            <div class="status-box">
-              <strong>What's Next?</strong>
-              <p style="margin: 10px 0 0 0;">Your application is currently being reviewed and will be processed soon. You will receive another email notification when your application is transmitted to Kawasaki.</p>
-            </div>
-            
-            <p>Thank you for your patience and for choosing Giant Moto Pro.</p>
-            
-            <p>Best regards,<br>
-            <strong>Giant Moto Pro Team</strong></p>
-          </div>
-          
-          <div class="footer">
-            <p><strong>This is an automated message.</strong> Please do not reply to this email.</p>
-            <p>If you have questions, please contact your branch office.</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
-    
-    const plainBody = `
-APPLICATION RECEIVED - PENDING
 
-Dear Applicant,
+    var htmlBody = '<!DOCTYPE html>'
+      + '<html><head><meta charset="utf-8"></head>'
+      + '<body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;max-width:600px;margin:0 auto;padding:0;background:#f4f4f4">'
+      + '<div style="background:#fff;margin:20px auto;border-radius:8px;overflow:hidden;box-shadow:0 2px 4px rgba(0,0,0,.1)">'
+      // Logo
+      + '<div style="text-align:center;padding:20px;background:#fff">'
+      + '<img src="https://i.imgur.com/nGVvR3v.png" alt="Giant Moto Pro Logo" style="max-width:200px;height:auto" />'
+      + '</div>'
+      // Header
+      + '<div style="background:#fff3cd;color:#856404;padding:25px;text-align:center;border-bottom:4px solid #ffc107">'
+      + '<h2 style="margin:0;font-size:24px">Application Status: PENDING</h2>'
+      + '</div>'
+      // Content
+      + '<div style="padding:30px">'
+      + '<p>Dear Applicant,</p>'
+      + '<p>Thank you for your submission to the <strong>FSC / WRC / WLP Management System</strong>.</p>'
+      + '<table style="width:100%;background:#f8f9fa;border-radius:6px;margin:20px 0;border-collapse:collapse">'
+      + '<tr><td style="font-weight:bold;color:#555;padding:12px 15px;border-bottom:1px solid #e9ecef;width:40%">Form Type</td>'
+      + '<td style="color:#333;padding:12px 15px;border-bottom:1px solid #e9ecef"><strong>' + formType + '</strong></td></tr>'
+      + refRows
+      + '<tr><td style="font-weight:bold;color:#555;padding:12px 15px;width:40%">Status</td>'
+      + '<td style="color:#333;padding:12px 15px"><strong>PENDING</strong></td></tr>'
+      + '</table>'
+      + '<div style="background:#fff3cd;border-left:4px solid #ffc107;padding:15px;margin:20px 0;border-radius:4px">'
+      + '<strong>What\'s Next?</strong>'
+      + '<p style="margin:10px 0 0">Your application is currently being reviewed. You will receive another email once your application has been transmitted to Kawasaki.</p>'
+      + '</div>'
+      + '<p>Thank you for choosing Giant Moto Pro.</p>'
+      + '<p>Best regards,<br><strong>Giant Moto Pro Team</strong></p>'
+      + '</div>'
+      // Footer
+      + '<div style="background:#f8f9fa;padding:20px;text-align:center;font-size:.9em;color:#666;border-top:1px solid #ddd">'
+      + '<p style="margin:0"><strong>This is an automated message.</strong> Please do not reply.</p>'
+      + '<p style="margin:8px 0 0">Contact your branch office for questions.</p>'
+      + '</div>'
+      + '</div></body></html>';
 
-Thank you for your submission to the FSC / WRC / WLP Management System.
+    var plainBody = 'APPLICATION RECEIVED – PENDING\n\n'
+      + 'Form Type: ' + formType + '\n'
+      + 'Status: PENDING\n\n'
+      + 'Your application is being reviewed. You will receive another email when it is transmitted to Kawasaki.\n\n'
+      + 'Giant Moto Pro Team';
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-APPLICATION DETAILS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Form Type: ${formType}
-${formType === 'WRC' ? 'WRC Number: ' + (wrcNumber || 'N/A') : ''}
-${formType === 'WRC' ? 'Engine Number: ' + (engineNumber || 'N/A') : ''}
-${formType === 'FSC' ? 'WRC Number: ' + (wrcNumber || 'N/A') : ''}
-${formType === 'FSC' ? 'Frame Number: ' + (engineNumber || 'N/A') : ''}
-${formType === 'WLP' ? 'WRS Number: ' + (wrcNumber || 'N/A') : ''}
-${branch ? 'Branch: ' + branch : ''}
-${dealerName ? 'Dealer Name: ' + dealerName : ''}
-Status: PENDING
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Your application is currently being reviewed and will be processed soon.
-You will receive another email when your application is transmitted to Kawasaki.
-
-Thank you for your patience and for choosing Giant Moto Pro.
-
-Best regards,
-Giant Moto Pro Team
-
----
-This is an automated message. Please do not reply to this email.
-If you have questions, please contact your branch office.
-    `;
-    
-    // Send email using GmailApp (preferred) or MailApp
     try {
       GmailApp.sendEmail(email, subject, plainBody, {
         htmlBody: htmlBody,
-        name: 'Giant Moto Pro - FSC/WRC/WLP System'
+        name: 'Giant Moto Pro – FSC/WRC/WLP System'
       });
-      Logger.log('PENDING confirmation email sent to: ' + email);
-    } catch (e) {
-      // Fallback to MailApp if GmailApp fails
+    } catch (gmailErr) {
       MailApp.sendEmail(email, subject, plainBody, {
         htmlBody: htmlBody,
-        name: 'Giant Moto Pro - FSC/WRC/WLP System'
+        name: 'Giant Moto Pro – FSC/WRC/WLP System'
       });
-      Logger.log('PENDING confirmation email sent to: ' + email + ' (via MailApp)');
     }
-    
-  } catch (error) {
-    Logger.log('PENDING email send error: ' + error.toString());
-    logError_('PENDING email notification error: ' + error.message, wrcNumber || '', engineNumber || '');
+  } catch (err) {
+    Logger.log('PENDING email error: ' + err.toString());
+    logError_('PENDING email failed: ' + err.message, primaryRef || '', secondaryRef || '');
   }
 }
 
-/**
- * Installable trigger function - automatically runs when any cell is edited
- * Monitors STATUS column changes and sends email notifications
- * 
- * TO INSTALL TRIGGER:
- * 1. Open Apps Script Editor
- * 2. Click on "Triggers" (clock icon) in left sidebar
- * 3. Click "+ Add Trigger" button
- * 4. Choose:
- *    - Function: onEdit
- *    - Event source: From spreadsheet
- *    - Event type: On edit
- * 5. Save
- */
-/**
- * ═══════════════════════════════════════════════════════════════
- *  INSTALLABLE onEdit TRIGGER - STATUS CHANGE EMAIL NOTIFICATION
- *  
- *  CRITICAL: This must be installed as an INSTALLABLE trigger
- *  (not a simple trigger) to have Gmail/email permissions.
- *  
- *  Setup: Triggers → + Add Trigger → onEdit → On edit
- * ═══════════════════════════════════════════════════════════════
- */
-function onEdit(e) {
-  const TRIGGER_STATUS = 'TRANSMITTED TO KAWASAKI';
-  const LOG_SHEET = 'Log';
-  
-  try {
-    // ─────────────────────────────────────────────────────────────
-    // 1. VALIDATE EVENT OBJECT
-    // ─────────────────────────────────────────────────────────────
-    if (!e || !e.range) {
-      logToSheet_(LOG_SHEET, 'ERROR', 'onEdit', '', 'Invalid event object - trigger may not be properly installed');
-      return;
-    }
-    
-    // ─────────────────────────────────────────────────────────────
-    // 2. GET EDIT DETAILS
-    // ─────────────────────────────────────────────────────────────
-    const range = e.range;
-    const sheet = range.getSheet();
-    const sheetName = sheet.getName();
-    const row = range.getRow();
-    const col = range.getColumn();
-    const newValue = range.getValue();
-    const oldValue = e.oldValue || ''; // Previous value before edit
-    
-    // ─────────────────────────────────────────────────────────────
-    // 3. FILTER: ONLY PROCESS WRC/FSC/WLP SHEETS
-    // ─────────────────────────────────────────────────────────────
-    if (!['WRC', 'FSC', 'WLP'].includes(sheetName)) {
-      return; // Not a relevant sheet
-    }
-    
-    // ─────────────────────────────────────────────────────────────
-    // 4. SKIP HEADER ROW
-    // ─────────────────────────────────────────────────────────────
-    if (row === 1) {
-      return; // Don't process header edits
-    }
-    
-    // ─────────────────────────────────────────────────────────────
-    // 5. FIND COLUMN POSITIONS DYNAMICALLY
-    // ─────────────────────────────────────────────────────────────
-    const statusCol = findColumnByHeader_(sheet, 'STATUS');
-    const emailCol = findColumnByHeader_(sheet, 'EMAIL');
-    const branchCol = findColumnByHeader_(sheet, 'BRANCH');
-    
-    if (statusCol === 0) {
-      logToSheet_(LOG_SHEET, 'ERROR', sheetName, row, 'STATUS column not found in sheet');
-      return;
-    }
-    
-    if (emailCol === 0) {
-      logToSheet_(LOG_SHEET, 'ERROR', sheetName, row, 'EMAIL column not found in sheet');
-      return;
-    }
-    
-    // ─────────────────────────────────────────────────────────────
-    // 6. CHECK IF EDITED CELL IS STATUS COLUMN
-    // ─────────────────────────────────────────────────────────────
-    if (col !== statusCol) {
-      return; // Not editing STATUS column, exit
-    }
-    
-    // ─────────────────────────────────────────────────────────────
-    // 7. CHECK IF NEW VALUE IS TARGET STATUS
-    // ─────────────────────────────────────────────────────────────
-    const newValueNormalized = String(newValue).trim().toUpperCase();
-    if (newValueNormalized !== TRIGGER_STATUS.toUpperCase()) {
-      return; // Not the status we're looking for
-    }
-    
-    // ─────────────────────────────────────────────────────────────
-    // 8. PREVENT DUPLICATE SENDS (CHECK OLD VALUE)
-    // ─────────────────────────────────────────────────────────────
-    const oldValueNormalized = String(oldValue).trim().toUpperCase();
-    if (oldValueNormalized === TRIGGER_STATUS.toUpperCase()) {
-      logToSheet_(LOG_SHEET, 'SKIPPED', sheetName, row, 
-        'Status already was TRANSMITTED - prevented duplicate email send');
-      return;
-    }
-    
-    // ─────────────────────────────────────────────────────────────
-    // 9. CHECK FOR DUPLICATE SEND FLAG (OPTIONAL SAFETY)
-    // ─────────────────────────────────────────────────────────────
-    let emailSentCol = findColumnByHeader_(sheet, 'EMAIL_SENT');
-    if (emailSentCol > 0) {
-      const emailSentFlag = sheet.getRange(row, emailSentCol).getValue();
-      if (emailSentFlag === 'YES' || emailSentFlag === true) {
-        logToSheet_(LOG_SHEET, 'SKIPPED', sheetName, row, 
-          'EMAIL_SENT flag already set - prevented duplicate');
-        return;
-      }
-    }
-    
-    // ─────────────────────────────────────────────────────────────
-    // 10. GET IDENTIFIER AND ENGINE NUMBER BASED ON SHEET TYPE
-    // ─────────────────────────────────────────────────────────────
-    let wrcNumber = '';
-    let engineNumber = '';
-    let dealerName = '';
-    
-    if (sheetName === 'WRC') {
-      // WRC: Column A = WRC No., Column B = Engine No., Column J = Dealer Name
-      wrcNumber = String(sheet.getRange(row, 1).getValue()).trim();
-      engineNumber = String(sheet.getRange(row, 2).getValue()).trim();
-      const dealerCol = findColumnByHeader_(sheet, 'DEALER NAME');
-      if (dealerCol > 0) {
-        dealerName = String(sheet.getRange(row, dealerCol).getValue()).trim();
-      }
-    } else if (sheetName === 'FSC') {
-      // FSC: Column C = WRC Number, Column D = Frame Number, Column B = Dealer/Mechanic Code
-      const wrcCol = findColumnByHeader_(sheet, 'WRC NUMBER') || findColumnByHeader_(sheet, 'WRC Number');
-      const frameCol = findColumnByHeader_(sheet, 'FRAME NUMBER') || findColumnByHeader_(sheet, 'Frame Number');
-      const dealerCol = findColumnByHeader_(sheet, 'DEALER/MECHANIC CODE') || findColumnByHeader_(sheet, 'Dealer/Mechanic Code');
-      
-      if (wrcCol > 0) wrcNumber = String(sheet.getRange(row, wrcCol).getValue()).trim();
-      if (frameCol > 0) engineNumber = String(sheet.getRange(row, frameCol).getValue()).trim();
-      if (dealerCol > 0) dealerName = String(sheet.getRange(row, dealerCol).getValue()).trim();
-    } else if (sheetName === 'WLP') {
-      // WLP: Column A = WRS Number, Column F = Dealer/Mechanic Code
-      wrcNumber = String(sheet.getRange(row, 1).getValue()).trim();  // WRS Number
-      const dealerCol = findColumnByHeader_(sheet, 'DEALER/MECHANIC CODE') || findColumnByHeader_(sheet, 'Dealer/Mechanic Code');
-      if (dealerCol > 0) {
-        dealerName = String(sheet.getRange(row, dealerCol).getValue()).trim();
-      }
-    }
-    
-    // ─────────────────────────────────────────────────────────────
-    // 11. GET EMAIL ADDRESS AND BRANCH
-    // ─────────────────────────────────────────────────────────────
-    const email = String(sheet.getRange(row, emailCol).getValue()).trim();
-    const branch = branchCol > 0 ? String(sheet.getRange(row, branchCol).getValue()).trim() : '';
-    
-    // ─────────────────────────────────────────────────────────────
-    // 12. VALIDATE EMAIL ADDRESS
-    // ─────────────────────────────────────────────────────────────
-    if (!email || email === '') {
-      logToSheet_(LOG_SHEET, 'ERROR', sheetName, row, 
-        `Missing email address for WRC/WRS Number: ${wrcNumber}`);
-      return;
-    }
-    
-    // Simple email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      logToSheet_(LOG_SHEET, 'ERROR', sheetName, row, 
-        `Invalid email format: ${email} for WRC/WRS Number: ${wrcNumber}`);
-      return;
-    }
-    
-    // ─────────────────────────────────────────────────────────────
-    // 13. SEND EMAIL NOTIFICATION WITH WRC/ENGINE NUMBERS
-    // ─────────────────────────────────────────────────────────────
-    const emailResult = sendTransmittedEmail_(email, sheetName, wrcNumber, engineNumber, branch, dealerName);
-    
-    if (emailResult.success) {
-      // Log success
-      logToSheet_(LOG_SHEET, 'SUCCESS', sheetName, row, 
-        `Email sent to ${email} for WRC/WRS: ${wrcNumber}, Engine/Frame: ${engineNumber || 'N/A'}`);
-      
-      // Set EMAIL_SENT flag if column exists
-      if (emailSentCol > 0) {
-        sheet.getRange(row, emailSentCol).setValue('YES');
-      }
-      
-      Logger.log(`✓ Email sent successfully to ${email} (${sheetName} row ${row})`);
-      
-    } else {
-      // Log failure
-      logToSheet_(LOG_SHEET, 'ERROR', sheetName, row, 
-        `Email send failed: ${emailResult.error} - Email: ${email}, WRC/WRS: ${wrcNumber}`);
-      
-      Logger.log(`✗ Email send failed for ${email}: ${emailResult.error}`);
-    }
-    
-  } catch (error) {
-    // Catch-all error handler
-    const errorMsg = `onEdit exception: ${error.message} | Stack: ${error.stack}`;
-    logToSheet_(LOG_SHEET, 'CRITICAL', 'onEdit', '', errorMsg);
-    Logger.log('CRITICAL ERROR in onEdit: ' + error.toString());
-  }
-}
+// ================================================================
+//  EMAIL: TRANSMITTED TO KAWASAKI
+// ================================================================
 
 /**
- * ═══════════════════════════════════════════════════════════════
- *  SEND TRANSMITTED EMAIL - ISOLATED FUNCTION FOR TESTING
- * ═══════════════════════════════════════════════════════════════
+ * Send status-update email when row is changed to TRANSMITTED TO KAWASAKI.
  */
-function sendTransmittedEmail_(email, formType, wrcNumber, engineNumber, branch, dealerName) {
+function sendTransmittedEmail_(email, formType, primaryRef, secondaryRef, branch, dealerName) {
   try {
-    const subject = 'Application Status: TRANSMITTED TO KAWASAKI';
-    
-    // Build dynamic field rows
-    let fieldRows = '';
+    var subject = 'Application Status: TRANSMITTED TO KAWASAKI';
+
+    var refRows = '';
     if (formType === 'WRC') {
-      fieldRows = `
-        <tr><td class="field-label">WRC Number:</td><td class="field-value">${wrcNumber || 'N/A'}</td></tr>
-        <tr><td class="field-label">Engine Number:</td><td class="field-value">${engineNumber || 'N/A'}</td></tr>
-      `;
+      refRows += '<tr><td style="font-weight:bold;color:#555;padding:12px 15px;border-bottom:1px solid #e9ecef;width:40%">WRC Number</td>'
+               + '<td style="color:#333;padding:12px 15px;border-bottom:1px solid #e9ecef">' + (primaryRef || 'N/A') + '</td></tr>';
+      refRows += '<tr><td style="font-weight:bold;color:#555;padding:12px 15px;border-bottom:1px solid #e9ecef;width:40%">Engine Number</td>'
+               + '<td style="color:#333;padding:12px 15px;border-bottom:1px solid #e9ecef">' + (secondaryRef || 'N/A') + '</td></tr>';
     } else if (formType === 'FSC') {
-      fieldRows = `
-        <tr><td class="field-label">WRC Number:</td><td class="field-value">${wrcNumber || 'N/A'}</td></tr>
-        <tr><td class="field-label">Frame Number:</td><td class="field-value">${engineNumber || 'N/A'}</td></tr>
-      `;
+      refRows += '<tr><td style="font-weight:bold;color:#555;padding:12px 15px;border-bottom:1px solid #e9ecef;width:40%">WRC Number</td>'
+               + '<td style="color:#333;padding:12px 15px;border-bottom:1px solid #e9ecef">' + (primaryRef || 'N/A') + '</td></tr>';
+      refRows += '<tr><td style="font-weight:bold;color:#555;padding:12px 15px;border-bottom:1px solid #e9ecef;width:40%">Frame Number</td>'
+               + '<td style="color:#333;padding:12px 15px;border-bottom:1px solid #e9ecef">' + (secondaryRef || 'N/A') + '</td></tr>';
     } else if (formType === 'WLP') {
-      fieldRows = `
-        <tr><td class="field-label">WRS Number:</td><td class="field-value">${wrcNumber || 'N/A'}</td></tr>
-      `;
+      refRows += '<tr><td style="font-weight:bold;color:#555;padding:12px 15px;border-bottom:1px solid #e9ecef;width:40%">WRS Number</td>'
+               + '<td style="color:#333;padding:12px 15px;border-bottom:1px solid #e9ecef">' + (primaryRef || 'N/A') + '</td></tr>';
     }
-    
     if (branch) {
-      fieldRows += `<tr><td class="field-label">Branch:</td><td class="field-value">${branch}</td></tr>`;
+      refRows += '<tr><td style="font-weight:bold;color:#555;padding:12px 15px;border-bottom:1px solid #e9ecef;width:40%">Branch</td>'
+               + '<td style="color:#333;padding:12px 15px;border-bottom:1px solid #e9ecef">' + branch + '</td></tr>';
     }
     if (dealerName) {
-      fieldRows += `<tr><td class="field-label">Dealer Name:</td><td class="field-value">${dealerName}</td></tr>`;
+      refRows += '<tr><td style="font-weight:bold;color:#555;padding:12px 15px;border-bottom:1px solid #e9ecef;width:40%">Dealer</td>'
+               + '<td style="color:#333;padding:12px 15px;border-bottom:1px solid #e9ecef">' + dealerName + '</td></tr>';
     }
-    
-    const htmlBody = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 0;
-            background-color: #f4f4f4;
-          }
-          .container {
-            background-color: #ffffff;
-            margin: 20px auto;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-          }
-          .logo {
-            text-align: center;
-            padding: 20px;
-            background-color: #ffffff;
-          }
-          .logo img {
-            max-width: 200px;
-            height: auto;
-          }
-          .header {
-            background-color: #28a745;
-            color: white;
-            padding: 25px;
-            text-align: center;
-          }
-          .header h2 {
-            margin: 0;
-            font-size: 24px;
-          }
-          .content {
-            padding: 30px;
-          }
-          .info-table {
-            width: 100%;
-            background-color: #f8f9fa;
-            border-radius: 6px;
-            margin: 20px 0;
-            border-collapse: collapse;
-          }
-          .info-table td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #e9ecef;
-          }
-          .info-table tr:last-child td {
-            border-bottom: none;
-          }
-          .field-label {
-            font-weight: bold;
-            color: #555;
-            width: 40%;
-          }
-          .field-value {
-            color: #333;
-          }
-          .success-box {
-            background-color: #d4edda;
-            border-left: 4px solid #28a745;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 4px;
-            color: #155724;
-          }
-          .footer {
-            background-color: #f8f9fa;
-            padding: 20px;
-            text-align: center;
-            font-size: 0.9em;
-            color: #666;
-            border-top: 1px solid #ddd;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="logo">
-            <img src="https://i.imgur.com/nGVvR3v.png" alt="Giant Moto Pro Logo" />
-          </div>
-          
-          <div class="header">
-            <h2>✓ Application Status: TRANSMITTED TO KAWASAKI</h2>
-          </div>
-          
-          <div class="content">
-            <p>Dear Customer,</p>
-            
-            <p>We are pleased to inform you that your application has been successfully processed and <strong>transmitted to Kawasaki</strong>.</p>
-            
-            <table class="info-table">
-              <tr><td class="field-label">Form Type:</td><td class="field-value"><strong>${formType}</strong></td></tr>
-              ${fieldRows}
-              <tr><td class="field-label">Status:</td><td class="field-value"><strong>TRANSMITTED TO KAWASAKI</strong></td></tr>
-            </table>
-            
-            <div class="success-box">
-              <strong>✓ What's Next?</strong>
-              <p style="margin: 10px 0 0 0;">Your application is now with Kawasaki for final processing. You will be contacted if any additional information is required.</p>
-            </div>
-            
-            <p>Thank you for your patience and for choosing Giant Moto Pro.</p>
-            
-            <p>Best regards,<br>
-            <strong>Giant Moto Pro Team</strong></p>
-          </div>
-          
-          <div class="footer">
-            <p><strong>This is an automated notification</strong> from the FSC/WRC/WLP Management System.</p>
-            <p>If you have questions, please contact your branch office.</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
-    
-    const plainBody = `
-STATUS UPDATE - TRANSMITTED TO KAWASAKI
 
-Dear Customer,
+    var htmlBody = '<!DOCTYPE html>'
+      + '<html><head><meta charset="utf-8"></head>'
+      + '<body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;max-width:600px;margin:0 auto;padding:0;background:#f4f4f4">'
+      + '<div style="background:#fff;margin:20px auto;border-radius:8px;overflow:hidden;box-shadow:0 2px 4px rgba(0,0,0,.1)">'
+      // Logo
+      + '<div style="text-align:center;padding:20px;background:#fff">'
+      + '<img src="https://i.imgur.com/nGVvR3v.png" alt="Giant Moto Pro Logo" style="max-width:200px;height:auto" />'
+      + '</div>'
+      // Header (green)
+      + '<div style="background:#28a745;color:#fff;padding:25px;text-align:center">'
+      + '<h2 style="margin:0;font-size:24px">TRANSMITTED TO KAWASAKI</h2>'
+      + '</div>'
+      // Content
+      + '<div style="padding:30px">'
+      + '<p>Dear Customer,</p>'
+      + '<p>Your application has been successfully processed and <strong>transmitted to Kawasaki</strong>.</p>'
+      + '<table style="width:100%;background:#f8f9fa;border-radius:6px;margin:20px 0;border-collapse:collapse">'
+      + '<tr><td style="font-weight:bold;color:#555;padding:12px 15px;border-bottom:1px solid #e9ecef;width:40%">Form Type</td>'
+      + '<td style="color:#333;padding:12px 15px;border-bottom:1px solid #e9ecef"><strong>' + formType + '</strong></td></tr>'
+      + refRows
+      + '<tr><td style="font-weight:bold;color:#555;padding:12px 15px;width:40%">Status</td>'
+      + '<td style="color:#333;padding:12px 15px"><strong style="color:#28a745">TRANSMITTED TO KAWASAKI</strong></td></tr>'
+      + '</table>'
+      + '<div style="background:#d4edda;border-left:4px solid #28a745;padding:15px;margin:20px 0;border-radius:4px;color:#155724">'
+      + '<strong>What\'s Next?</strong>'
+      + '<p style="margin:10px 0 0">Your application is now with Kawasaki for final processing. No further action is required at this time.</p>'
+      + '</div>'
+      + '<p>Thank you for choosing Giant Moto Pro.</p>'
+      + '<p>Best regards,<br><strong>Giant Moto Pro Team</strong></p>'
+      + '</div>'
+      // Footer
+      + '<div style="background:#f8f9fa;padding:20px;text-align:center;font-size:.9em;color:#666;border-top:1px solid #ddd">'
+      + '<p style="margin:0"><strong>This is an automated notification.</strong> Please do not reply.</p>'
+      + '<p style="margin:8px 0 0">Contact your branch office for questions.</p>'
+      + '</div>'
+      + '</div></body></html>';
 
-We are pleased to inform you that your application has been successfully processed and transmitted to Kawasaki.
+    var plainBody = 'STATUS UPDATE – TRANSMITTED TO KAWASAKI\n\n'
+      + 'Form Type: ' + formType + '\n'
+      + 'Status: TRANSMITTED TO KAWASAKI\n\n'
+      + 'Your application is now with Kawasaki for final processing.\n\n'
+      + 'Giant Moto Pro Team';
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-APPLICATION DETAILS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Form Type: ${formType}
-${formType === 'WRC' ? 'WRC Number: ' + (wrcNumber || 'N/A') : ''}
-${formType === 'WRC' ? 'Engine Number: ' + (engineNumber || 'N/A') : ''}
-${formType === 'FSC' ? 'WRC Number: ' + (wrcNumber || 'N/A') : ''}
-${formType === 'FSC' ? 'Frame Number: ' + (engineNumber || 'N/A') : ''}
-${formType === 'WLP' ? 'WRS Number: ' + (wrcNumber || 'N/A') : ''}
-${branch ? 'Branch: ' + branch : ''}
-${dealerName ? 'Dealer Name: ' + dealerName : ''}
-Status: TRANSMITTED TO KAWASAKI
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Your application is now with Kawasaki for final processing. You will be contacted if any additional information is required.
-
-Thank you for your patience and for choosing Giant Moto Pro.
-
-Best regards,
-Giant Moto Pro Team
-
----
-This is an automated notification from the FSC/WRC/WLP Management System.
-If you have questions, please contact your branch office.
-    `;
-    
-    // Try GmailApp first, fallback to MailApp
     try {
       GmailApp.sendEmail(email, subject, plainBody, {
         htmlBody: htmlBody,
-        name: 'Giant Moto Pro - FSC/WRC/WLP System'
+        name: 'Giant Moto Pro – FSC/WRC/WLP System'
       });
       return { success: true, method: 'GmailApp' };
-    } catch (gmailError) {
-      // Fallback to MailApp
+    } catch (gmailErr) {
       try {
         MailApp.sendEmail(email, subject, plainBody, {
           htmlBody: htmlBody,
-          name: 'Giant Moto Pro - FSC/WRC/WLP System'
+          name: 'Giant Moto Pro – FSC/WRC/WLP System'
         });
         return { success: true, method: 'MailApp' };
-      } catch (mailError) {
-        return { 
-          success: false, 
-          error: `Both GmailApp and MailApp failed. GmailApp: ${gmailError.message}, MailApp: ${mailError.message}` 
-        };
+      } catch (mailErr) {
+        return { success: false, error: 'GmailApp: ' + gmailErr.message + ' / MailApp: ' + mailErr.message };
       }
     }
-    
-  } catch (error) {
-    return { 
-      success: false, 
-      error: error.message 
-    };
+  } catch (err) {
+    return { success: false, error: err.message };
   }
 }
 
+// ================================================================
+//  INSTALLABLE onEdit TRIGGER
+// ================================================================
+
 /**
- * ═══════════════════════════════════════════════════════════════
- *  ENHANCED LOGGING TO LOG SHEET
- * ═══════════════════════════════════════════════════════════════
+ * Fires when any cell is edited.  If the STATUS column on WRC, FSC,
+ * or WLP is changed to "TRANSMITTED TO KAWASAKI" it sends a
+ * notification email to the row's EMAIL address.
+ *
+ * IMPORTANT: This must be installed as an INSTALLABLE trigger,
+ * not a simple onEdit, so it can send email and access services.
  */
+function onEdit(e) {
+  var TRIGGER_STATUS = 'TRANSMITTED TO KAWASAKI';
+
+  try {
+    if (!e || !e.range) {
+      logToSheet_('Log', 'ERROR', 'onEdit', '', 'No event object');
+      return;
+    }
+
+    var range     = e.range;
+    var sheet     = range.getSheet();
+    var sheetName = sheet.getName();
+    var row       = range.getRow();
+    var col       = range.getColumn();
+    var newValue  = range.getValue();
+    var oldValue  = e.oldValue || '';
+
+    // Only act on WRC, FSC, or WLP sheets
+    if (['WRC', 'FSC', 'WLP'].indexOf(sheetName) === -1) return;
+    if (row === 1) return; // ignore header row
+
+    // Must be the STATUS column
+    var statusCol = findColumnByHeader_(sheet, 'STATUS');
+    var emailCol  = findColumnByHeader_(sheet, 'EMAIL');
+    var branchCol = findColumnByHeader_(sheet, 'BRANCH');
+
+    if (statusCol === 0 || emailCol === 0) return;
+    if (col !== statusCol) return;
+
+    // Only fire for the specific status value
+    var newNorm = String(newValue).trim().toUpperCase();
+    if (newNorm !== TRIGGER_STATUS.toUpperCase()) return;
+
+    var oldNorm = String(oldValue).trim().toUpperCase();
+    if (oldNorm === TRIGGER_STATUS.toUpperCase()) return; // no change
+
+    // Prevent double-send via EMAIL_SENT flag
+    var emailSentCol = findColumnByHeader_(sheet, 'EMAIL_SENT');
+    if (emailSentCol > 0) {
+      var flag = sheet.getRange(row, emailSentCol).getValue();
+      if (flag === 'YES' || flag === true) return;
+    }
+
+    // Gather data using header-based column lookups (never hardcoded)
+    var email  = String(sheet.getRange(row, emailCol).getValue()).trim();
+    var branch = branchCol > 0 ? String(sheet.getRange(row, branchCol).getValue()).trim() : '';
+
+    var primaryRef   = '';
+    var secondaryRef = '';
+    var dealerName   = '';
+
+    if (sheetName === 'WRC') {
+      var wrcNoCol    = findColumnByHeader_(sheet, 'WRC No.');
+      var engineNoCol = findColumnByHeader_(sheet, 'ENGINE No.');
+      var dealerCol   = findColumnByHeader_(sheet, 'DEALER NAME');
+      if (wrcNoCol > 0)    primaryRef   = String(sheet.getRange(row, wrcNoCol).getValue()).trim();
+      if (engineNoCol > 0) secondaryRef = String(sheet.getRange(row, engineNoCol).getValue()).trim();
+      if (dealerCol > 0)   dealerName   = String(sheet.getRange(row, dealerCol).getValue()).trim();
+    } else if (sheetName === 'FSC') {
+      var fscWrcCol   = findColumnByHeader_(sheet, 'WRC Number');
+      var frameCol    = findColumnByHeader_(sheet, 'Frame Number');
+      var mechCodeCol = findColumnByHeader_(sheet, 'Dealer/Mechanic Code');
+      if (fscWrcCol > 0)   primaryRef   = String(sheet.getRange(row, fscWrcCol).getValue()).trim();
+      if (frameCol > 0)    secondaryRef = String(sheet.getRange(row, frameCol).getValue()).trim();
+      if (mechCodeCol > 0) dealerName   = String(sheet.getRange(row, mechCodeCol).getValue()).trim();
+    } else if (sheetName === 'WLP') {
+      var wrsCol       = findColumnByHeader_(sheet, 'WRS Number');
+      var wlpDealerCol = findColumnByHeader_(sheet, 'Dealer/Mechanic Code');
+      if (wrsCol > 0)       primaryRef = String(sheet.getRange(row, wrsCol).getValue()).trim();
+      if (wlpDealerCol > 0) dealerName = String(sheet.getRange(row, wlpDealerCol).getValue()).trim();
+    }
+
+    // Validate email
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      logToSheet_('Log', 'ERROR', sheetName, row, 'Invalid or empty email: ' + email);
+      return;
+    }
+
+    // Send email
+    var result = sendTransmittedEmail_(email, sheetName, primaryRef, secondaryRef, branch, dealerName);
+
+    if (result.success) {
+      logToSheet_('Log', 'SUCCESS', sheetName, row,
+        'Transmitted email sent to ' + email + ' via ' + result.method);
+      if (emailSentCol > 0) sheet.getRange(row, emailSentCol).setValue('YES');
+    } else {
+      logToSheet_('Log', 'ERROR', sheetName, row, 'Email failed: ' + result.error);
+    }
+
+  } catch (err) {
+    logToSheet_('Log', 'CRITICAL', 'onEdit', '', 'Exception: ' + err.message);
+  }
+}
+
+// ================================================================
+//  ENHANCED LOG SHEET WRITER
+// ================================================================
+
 function logToSheet_(logSheetName, level, sheetName, row, message) {
   try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    let logSheet = ss.getSheetByName(logSheetName);
-    
-    // Create Log sheet if it doesn't exist
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var logSheet = ss.getSheetByName(logSheetName);
     if (!logSheet) {
       logSheet = ss.insertSheet(logSheetName);
-      logSheet.getRange(1, 1, 1, 6).setValues([[
-        'Timestamp', 'Level', 'Sheet', 'Row', 'Message', 'User'
-      ]]);
+      logSheet.getRange(1, 1, 1, 6).setValues([['Timestamp', 'Level', 'Sheet', 'Row', 'Message', 'User']]);
       logSheet.getRange(1, 1, 1, 6).setFontWeight('bold').setBackground('#f0f0f0');
       logSheet.setFrozenRows(1);
     }
-    
-    // Append log entry
-    logSheet.appendRow([
-      new Date(),
-      level,
-      sheetName || '',
-      row || '',
-      message,
-      Session.getActiveUser().getEmail()
-    ]);
-    
-    // Auto-format timestamp column
-    const lastRow = logSheet.getLastRow();
+
+    var user = '';
+    try { user = Session.getActiveUser().getEmail(); } catch (ignored) {}
+
+    logSheet.appendRow([new Date(), level, sheetName || '', row || '', message, user]);
+
+    // Color-code the level cell
+    var lastRow = logSheet.getLastRow();
     logSheet.getRange(lastRow, 1).setNumberFormat('yyyy-mm-dd hh:mm:ss');
-    
-    // Color code by level
-    const colors = {
-      'SUCCESS': '#d4edda',
-      'ERROR': '#f8d7da',
+
+    var colors = {
+      'SUCCESS':  '#d4edda',
+      'ERROR':    '#f8d7da',
       'CRITICAL': '#ff0000',
-      'SKIPPED': '#fff3cd',
-      'INFO': '#d1ecf1'
+      'SKIPPED':  '#fff3cd',
+      'INFO':     '#d1ecf1'
     };
     if (colors[level]) {
       logSheet.getRange(lastRow, 2).setBackground(colors[level]);
     }
-    
-  } catch (error) {
-    // Fallback to console if logging fails
-    Logger.log(`LOG ERROR: ${error.message} | Original: ${level} - ${message}`);
+  } catch (err) {
+    Logger.log('logToSheet_ error: ' + err.message + ' | ' + level + ' – ' + message);
+  }
+}
+
+// ================================================================
+//  TESTING & DIAGNOSTICS
+// ================================================================
+
+/**
+ * TEST: Send a "Transmitted" email using row 2 of WRC sheet.
+ * Run manually from the Script Editor.
+ */
+function TEST_EmailTrigger() {
+  var TEST_CONFIG = {
+    sheetName: 'WRC',
+    testRow: 2,
+    testEmail: 'kenji.devcodes@gmail.com'  // override for testing
+  };
+
+  Logger.log('=== EMAIL TRIGGER TEST – START ===');
+
+  try {
+    var ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName(TEST_CONFIG.sheetName);
+    if (!sheet) { Logger.log('Sheet "' + TEST_CONFIG.sheetName + '" not found.'); return; }
+
+    var statusCol = findColumnByHeader_(sheet, 'STATUS');
+    var emailCol  = findColumnByHeader_(sheet, 'EMAIL');
+    if (statusCol === 0 || emailCol === 0) {
+      Logger.log('STATUS or EMAIL column not found.');
+      return;
+    }
+
+    var originalEmail = sheet.getRange(TEST_CONFIG.testRow, emailCol).getValue();
+    var targetEmail   = TEST_CONFIG.testEmail || originalEmail;
+    if (!targetEmail) { Logger.log('No target email.'); return; }
+
+    // Temporarily set test email
+    if (TEST_CONFIG.testEmail && TEST_CONFIG.testEmail !== originalEmail) {
+      sheet.getRange(TEST_CONFIG.testRow, emailCol).setValue(TEST_CONFIG.testEmail);
+    }
+
+    var wrcNoCol    = findColumnByHeader_(sheet, 'WRC No.');
+    var engineNoCol = findColumnByHeader_(sheet, 'ENGINE No.');
+    var wrcNum    = wrcNoCol > 0 ? sheet.getRange(TEST_CONFIG.testRow, wrcNoCol).getValue() : 'TEST-WRC';
+    var engineNum = engineNoCol > 0 ? sheet.getRange(TEST_CONFIG.testRow, engineNoCol).getValue() : 'TEST-ENGINE';
+
+    var result = sendTransmittedEmail_(targetEmail, TEST_CONFIG.sheetName, wrcNum, engineNum, 'Test Branch', 'Test Dealer');
+    Logger.log(result.success ? 'SUCCESS via ' + result.method : 'FAILED: ' + result.error);
+
+    // Restore original email
+    if (TEST_CONFIG.testEmail && TEST_CONFIG.testEmail !== originalEmail) {
+      sheet.getRange(TEST_CONFIG.testRow, emailCol).setValue(originalEmail);
+    }
+
+    Logger.log('=== EMAIL TRIGGER TEST – END ===');
+  } catch (err) {
+    Logger.log('TEST EXCEPTION: ' + err.message);
   }
 }
 
 /**
- * Send status notification email to customer
- * 
- * @param {string} email - Recipient email address
- * @param {string} formType - WRC, FSC, or WLP
- * @param {string} identifier - WRC No. or WRS No.
- * @param {string} identifierName - Display name for identifier
+ * DIAGNOSTIC: Check installed triggers and email quota.
  */
-function sendStatusNotificationEmail(email, formType, identifier, identifierName) {
+function DIAGNOSTIC_CheckTriggerSetup() {
+  Logger.log('=== TRIGGER DIAGNOSTIC ===');
+
+  var triggers = ScriptApp.getProjectTriggers();
+  Logger.log('Total triggers installed: ' + triggers.length);
+
+  var hasOnEdit = false;
+  triggers.forEach(function(trigger, idx) {
+    var fn   = trigger.getHandlerFunction();
+    var type = trigger.getEventType();
+    Logger.log('  [' + (idx + 1) + '] Function: ' + fn + '  |  Event: ' + type);
+    if (fn === 'onEdit' && type === ScriptApp.EventType.ON_EDIT) hasOnEdit = true;
+  });
+
+  if (hasOnEdit) {
+    Logger.log('RESULT: Installable onEdit trigger found.');
+  } else {
+    Logger.log('WARNING: No installable onEdit trigger detected.');
+    Logger.log('  -> Go to Triggers > + Add Trigger > onEdit > From spreadsheet > On edit');
+  }
+
   try {
-    const subject = 'Your Application Status: TRANSMITTED TO KAWASAKI';
-    
-    const htmlBody = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-          }
-          .header {
-            background-color: #f8f9fa;
-            padding: 20px;
-            border-left: 4px solid #007bff;
-            margin-bottom: 20px;
-          }
-          .header h2 {
-            margin: 0;
-            color: #007bff;
-          }
-          .content {
-            padding: 20px 0;
-          }
-          .info-box {
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 6px;
-            margin: 15px 0;
-          }
-          .info-label {
-            font-weight: bold;
-            color: #555;
-          }
-          .footer {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #ddd;
-            font-size: 0.9em;
-            color: #666;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <h2>Application Status Update</h2>
-        </div>
-        
-        <div class="content">
-          <p>Dear Customer,</p>
-          
-          <p>We are pleased to inform you that your application submitted via our <strong>FSC / WRC / WLP Management System</strong> has been successfully transmitted to Kawasaki.</p>
-          
-          <div class="info-box">
-            <p><span class="info-label">Form Type:</span> ${formType}</p>
-            <p><span class="info-label">${identifierName}:</span> ${identifier}</p>
-            <p><span class="info-label">Status:</span> TRANSMITTED TO KAWASAKI</p>
-          </div>
-          
-          <p>Your submission is now being processed by Kawasaki. You will be contacted if any additional information is required.</p>
-          
-          <p>Thank you for your patience and for choosing our services.</p>
-        </div>
-        
-        <div class="footer">
-          <p>This is an automated notification from the FSC/WRC/WLP Management System.</p>
-          <p>If you have any questions or concerns, please contact your dealer branch.</p>
-        </div>
-      </body>
-      </html>
-    `;
-    
-    const plainBody = `
-Application Status Update
+    Logger.log('Remaining daily email quota: ' + MailApp.getRemainingDailyQuota());
+  } catch (e) {
+    Logger.log('Could not check email quota: ' + e.message);
+  }
+}
 
-Dear Customer,
+/**
+ * DIAGNOSTIC: View recent log entries (last 20).
+ */
+function DIAGNOSTIC_ViewRecentLogs() {
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var logSheet = ss.getSheetByName('Log');
+    if (!logSheet) { Logger.log('Log sheet not found.'); return; }
 
-We are pleased to inform you that your application submitted via our FSC / WRC / WLP Management System has been successfully transmitted to Kawasaki.
+    var lastRow = logSheet.getLastRow();
+    if (lastRow < 2) { Logger.log('Log sheet is empty.'); return; }
 
-Form Type: ${formType}
-${identifierName}: ${identifier}
-Status: TRANSMITTED TO KAWASAKI
+    var startRow = Math.max(2, lastRow - 19);
+    var data = logSheet.getRange(startRow, 1, lastRow - startRow + 1, 6).getValues();
 
-Your submission is now being processed by Kawasaki. You will be contacted if any additional information is required.
+    Logger.log('=== RECENT LOG ENTRIES (' + data.length + ') ===');
+    data.forEach(function(row, i) {
+      Logger.log('[Row ' + (startRow + i) + '] '
+        + row[0] + ' | ' + row[1] + ' | ' + row[2]
+        + ' | Row ' + row[3] + ' | ' + row[4]);
+    });
+  } catch (err) {
+    Logger.log('DIAGNOSTIC error: ' + err.message);
+  }
+}
 
-Thank you for your patience and for choosing our services.
+/**
+ * UTILITY: Clean up old log entries (keep last 100).
+ */
+function UTILITY_CleanupOldLogs() {
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var logSheet = ss.getSheetByName('Log');
+    if (!logSheet) { Logger.log('No Log sheet to clean.'); return; }
 
----
-This is an automated notification from the FSC/WRC/WLP Management System.
-If you have any questions or concerns, please contact your dealer branch.
-    `;
-    
-    // Send email using GmailApp (preferred) or MailApp
-    try {
-      GmailApp.sendEmail(email, subject, plainBody, {
-        htmlBody: htmlBody,
-        name: 'FSC/WRC/WLP System'
-      });
-    } catch (e) {
-      // Fallback to MailApp if GmailApp fails
-      MailApp.sendEmail(email, subject, plainBody, {
-        htmlBody: htmlBody,
-        name: 'FSC/WRC/WLP System'
-      });
+    var lastRow = logSheet.getLastRow();
+    var KEEP = 100;
+    if (lastRow <= KEEP + 1) {
+      Logger.log('Log has ' + (lastRow - 1) + ' entries (<= ' + KEEP + '). Nothing to clean.');
+      return;
     }
-    
-    Logger.log('Email sent successfully to: ' + email);
-    
-  } catch (error) {
-    Logger.log('Email send error: ' + error.toString());
-    logError_('Email notification error: ' + error.message, identifier || '', '');
+
+    var deleteCount = lastRow - KEEP - 1;
+    logSheet.deleteRows(2, deleteCount);
+    Logger.log('Cleaned up ' + deleteCount + ' old log entries. Remaining: ' + KEEP);
+  } catch (err) {
+    Logger.log('Cleanup error: ' + err.message);
   }
 }
 
