@@ -361,6 +361,198 @@
       overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
     }
     *:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+
+    /* Radio & Checkbox Groups */
+    .radio-group, .checkbox-group { display: flex; flex-wrap: wrap; gap: 12px 24px; padding: 8px 0; }
+    .radio-label, .checkbox-label { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; cursor: pointer; font-weight: 400; }
+    .radio-label input[type="radio"], .checkbox-label input[type="checkbox"] { width: auto; height: auto; margin: 0; accent-color: var(--color-primary); }
+
+    /* Parts Table */
+    .parts-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+    .parts-table th { padding: 10px 12px; background: var(--color-bg-alt); font-size: 0.85rem; font-weight: 600; text-align: left; border: 1px solid var(--color-border); }
+    .parts-table td { padding: 4px; border: 1px solid var(--color-border); }
+    .parts-table td input { border: none; background: transparent; height: 32px; padding: 4px 8px; font-family: inherit; font-size: 0.9rem; width: 100%; }
+    .parts-table td input:focus { outline: 2px solid var(--color-primary); outline-offset: -2px; border-radius: 3px; }
+    .btn-remove-row { background: none; border: none; color: var(--color-error); font-size: 1.3rem; cursor: pointer; padding: 4px 10px; border-radius: 4px; transition: background 0.2s; }
+    .btn-remove-row:hover { background: var(--color-error-bg); }
+
+    /* PDF Download Card */
+    .pdf-download-section { margin-top: 24px; }
+    .pdf-download-card {
+      display: flex; align-items: center; gap: 16px; padding: 20px;
+      background: #ecfdf5; border: 1px solid #6ee7b7; border-radius: 8px;
+    }
+    .pdf-icon { font-size: 2rem; }
+    .pdf-download-info { flex: 1; }
+    .pdf-download-title { font-weight: 600; color: #065f46; font-size: 1rem; margin: 0; }
+    .pdf-download-id { color: #047857; font-size: 0.9rem; margin: 4px 0 0; }
+
+    /* Signature Pads */
+    .signature-pad-container { position: relative; }
+    .signature-canvas {
+      border: 2px solid var(--color-border);
+      border-radius: 6px;
+      background: #fff;
+      cursor: crosshair;
+      display: block;
+      touch-action: none;
+    }
+    .signature-canvas:hover { border-color: var(--color-primary); }
+    .btn-clear-sig {
+      margin-top: 4px;
+      padding: 4px 12px;
+      font-size: 0.8rem;
+      background: var(--color-bg-alt);
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      cursor: pointer;
+      color: var(--color-text);
+      transition: all 0.2s;
+    }
+    .btn-clear-sig:hover { background: var(--color-error-bg); color: var(--color-error); border-color: var(--color-error); }
+
+    /* WCF Post-Submit Modal */
+    .wcf-modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.2s;
+    }
+    .wcf-modal-overlay.active { display: flex; }
+    .wcf-modal {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+      max-width: 500px;
+      width: 90%;
+      max-height: 85vh;
+      overflow-y: auto;
+      animation: slideUp 0.3s;
+    }
+    .wcf-modal-header {
+      padding: 24px 24px 16px;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .wcf-modal-title {
+      margin: 0;
+      font-size: 1.5rem;
+      color: var(--color-success);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .wcf-modal-body {
+      padding: 24px;
+    }
+    .wcf-modal-info {
+      background: var(--color-bg-alt);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .wcf-modal-info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .wcf-modal-info-row:last-child { border-bottom: none; }
+    .wcf-modal-info-label {
+      font-weight: 600;
+      color: #666;
+      font-size: 0.9rem;
+    }
+    .wcf-modal-info-value {
+      color: var(--color-text);
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+    .wcf-modal-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .wcf-modal-btn {
+      padding: 12px 20px;
+      border-radius: 8px;
+      border: none;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .wcf-modal-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .wcf-modal-btn-primary {
+      background: var(--color-primary);
+      color: #fff;
+    }
+    .wcf-modal-btn-primary:hover:not(:disabled) {
+      background: #0056b3;
+      transform: translateY(-1px);
+    }
+    .wcf-modal-btn-secondary {
+      background: var(--color-bg-alt);
+      color: var(--color-text);
+      border: 1px solid var(--color-border);
+    }
+    .wcf-modal-btn-secondary:hover:not(:disabled) {
+      background: #e9ecef;
+    }
+    .wcf-modal-btn-success {
+      background: var(--color-success);
+      color: #fff;
+    }
+    .wcf-modal-btn-success:hover:not(:disabled) {
+      background: #218838;
+      transform: translateY(-1px);
+    }
+    .wcf-modal-status {
+      padding: 12px;
+      border-radius: 6px;
+      margin: 16px 0;
+      font-size: 0.9rem;
+      display: none;
+    }
+    .wcf-modal-status.show { display: block; }
+    .wcf-modal-status.success {
+      background: var(--color-success-bg);
+      color: var(--color-success);
+      border: 1px solid #6ee7b7;
+    }
+    .wcf-modal-status.error {
+      background: var(--color-error-bg);
+      color: var(--color-error);
+      border: 1px solid #fca5a5;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @media (max-width: 640px) {
+      .radio-group, .checkbox-group { flex-direction: column; gap: 8px; }
+      .pdf-download-card { flex-direction: column; text-align: center; }
+      .signature-canvas { width: 100%; height: 80px; }
+    }
   </style>
 </head>
 <body>
@@ -374,6 +566,7 @@
       <button class="tab active" role="tab" aria-selected="true" aria-controls="panel-wrc" id="tab-wrc" onclick="switchForm('wrc')">WRC Registration</button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="panel-fsc" id="tab-fsc" onclick="switchForm('fsc')">FSC Entry</button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="panel-wlp" id="tab-wlp" onclick="switchForm('wlp')">WLP Acknowledgment</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="panel-wcf" id="tab-wcf" onclick="switchForm('wcf')">WCF Claim</button>
     </nav>
 
     <main class="form-content">
@@ -849,6 +1042,369 @@
         </form>
       </div>
 
+      <!-- ============================================================
+           WCF FORM - Warranty Claim Form
+           ============================================================ -->
+      <div id="panel-wcf" class="form-panel" role="tabpanel" aria-labelledby="tab-wcf">
+        <div id="wcfMessage" class="message" role="alert"></div>
+        <div id="wcfValidationBanner" class="validation-banner" role="alert"></div>
+
+        <h2 class="form-title">Warranty Claim Form (WCF)</h2>
+
+        <form id="wcfForm" onsubmit="submitWCFForm(event)">
+
+          <!-- Branch (FIRST) -->
+          <div class="form-section">
+            <div class="form-row-full">
+              <div class="form-group">
+                <label for="wcfBranch">Branch <span class="req">*</span></label>
+                <select id="wcfBranch" name="wcfBranch" required aria-required="true">
+                  <option value="">Select Branch</option>
+                  <option value="BACAYAN">GMPC Bacayan</option>
+                  <option value="Balamban">Gmpc Balamban</option>
+                  <option value="Barili">Gmpc Barili</option>
+                  <option value="Bogo">Gmpc Bogo</option>
+                  <option value="Bulacao">Gmpc Bulacao</option>
+                  <option value="Camotes">Gmpc Camotes</option>
+                  <option value="Candijay">Gmpc Candijay</option>
+                  <option value="Carmen">Gmpc Carmen</option>
+                  <option value="Clarin">Gmpc Clarin</option>
+                  <option value="Consolacion">Gmpc Consolacion</option>
+                  <option value="Cordova">Gmpc Cordova</option>
+                  <option value="Lagtang">Gmpc Lagtang</option>
+                  <option value="Lapu-lapu">Gmpc Lapu-Lapu</option>
+                  <option value="Liloan">Gmpc Liloan</option>
+                  <option value="Pinamungajan">Gmpc Pinamungajan</option>
+                  <option value="Pitogo">Gmpc Pitogo</option>
+                  <option value="San Fernando">Gmpc San Fernando</option>
+                  <option value="Sierra Bullones">Gmpc Sierra Bullones</option>
+                  <option value="Talibon">Gmpc Talibon</option>
+                  <option value="Toledo">Gmpc Toledo</option>
+                  <option value="Tubigon">Gmpc Tubigon</option>
+                  <option value="Ubay">Gmpc Ubay</option>
+                  <option value="V Rama">Gmpc V Rama</option>
+                  <option value="Yati">Gmpc Yati</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- General Information -->
+          <div class="form-section">
+            <h3 class="section-title">General Information</h3>
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="wcfPreparedDate">Prepared Date <span class="req">*</span></label>
+                <input type="date" id="wcfPreparedDate" name="wcfPreparedDate" required aria-required="true">
+              </div>
+              <div class="form-group">
+                <label for="wcfJobOrderNo">Job Order No.</label>
+                <input type="text" id="wcfJobOrderNo" name="wcfJobOrderNo" placeholder="Job order number">
+              </div>
+            </div>
+          </div>
+
+          <!-- Dealer Information -->
+          <div class="form-section">
+            <h3 class="section-title">Dealer Information</h3>
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="wcfDealerName">Dealer's Name <span class="req">*</span></label>
+                <input type="text" id="wcfDealerName" name="wcfDealerName" required aria-required="true" placeholder="Dealer name" value="GIANT MOTO PRO CORP.">
+              </div>
+              <div class="form-group">
+                <label for="wcfDealerPhone">Phone Number</label>
+                <input type="tel" id="wcfDealerPhone" name="wcfDealerPhone" placeholder="Dealer phone number">
+              </div>
+            </div>
+            <div class="form-row-full">
+              <div class="form-group">
+                <label for="wcfDealerAddress">Dealer's Address</label>
+                <input type="text" id="wcfDealerAddress" name="wcfDealerAddress" placeholder="Dealer address">
+              </div>
+            </div>
+          </div>
+
+          <!-- Customer Information -->
+          <div class="form-section">
+            <h3 class="section-title">Customer Information</h3>
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="wcfCustomerName">Customer's Name <span class="req">*</span></label>
+                <input type="text" id="wcfCustomerName" name="wcfCustomerName" required aria-required="true" placeholder="Customer full name">
+              </div>
+              <div class="form-group">
+                <label for="wcfCustomerPhone">Phone Number</label>
+                <input type="tel" id="wcfCustomerPhone" name="wcfCustomerPhone" placeholder="Customer phone number">
+              </div>
+            </div>
+            <div class="form-row-full">
+              <div class="form-group">
+                <label for="wcfCustomerAddress">Customer's Address</label>
+                <input type="text" id="wcfCustomerAddress" name="wcfCustomerAddress" placeholder="Customer address">
+              </div>
+            </div>
+          </div>
+
+          <!-- Unit Information -->
+          <div class="form-section">
+            <h3 class="section-title">Unit Information</h3>
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="wcfModel">Model <span class="req">*</span></label>
+                <input type="text" id="wcfModel" name="wcfModel" required aria-required="true" placeholder="Motorcycle model">
+              </div>
+              <div class="form-group">
+                <label for="wcfColor">Color</label>
+                <input type="text" id="wcfColor" name="wcfColor" placeholder="Unit color">
+              </div>
+            </div>
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="wcfFrameNo">Frame No. <span class="req">*</span></label>
+                <input type="text" id="wcfFrameNo" name="wcfFrameNo" required aria-required="true" placeholder="Frame / chassis number">
+              </div>
+              <div class="form-group">
+                <label for="wcfEngineNo">Engine No. <span class="req">*</span></label>
+                <input type="text" id="wcfEngineNo" name="wcfEngineNo" required aria-required="true" placeholder="Engine number">
+              </div>
+            </div>
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="wcfWrcNo">WRC No. <span class="req">*</span></label>
+                <input type="text" id="wcfWrcNo" name="wcfWrcNo" required aria-required="true" placeholder="WRC number">
+              </div>
+              <div class="form-group">
+                <label for="wcfKilometerRun">Kilometer Run</label>
+                <input type="number" id="wcfKilometerRun" name="wcfKilometerRun" min="0" placeholder="0">
+              </div>
+            </div>
+          </div>
+
+          <!-- Important Dates -->
+          <div class="form-section">
+            <h3 class="section-title">Important Dates</h3>
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="wcfPurchaseDate">Purchase Date <span class="req">*</span></label>
+                <input type="date" id="wcfPurchaseDate" name="wcfPurchaseDate" required aria-required="true">
+              </div>
+              <div class="form-group">
+                <label for="wcfFailureDate">Failure Date <span class="req">*</span></label>
+                <input type="date" id="wcfFailureDate" name="wcfFailureDate" required aria-required="true">
+              </div>
+            </div>
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="wcfReportedDate">Reported Date</label>
+                <input type="date" id="wcfReportedDate" name="wcfReportedDate">
+              </div>
+              <div class="form-group">
+                <label for="wcfRepairDate">Repair Date</label>
+                <input type="date" id="wcfRepairDate" name="wcfRepairDate">
+              </div>
+            </div>
+          </div>
+
+          <!-- MC Usage -->
+          <div class="form-section">
+            <h3 class="section-title">Motorcycle Usage</h3>
+            <div class="form-row-full">
+              <div class="form-group">
+                <label>MC Usage</label>
+                <div class="radio-group">
+                  <label class="radio-label"><input type="radio" name="wcfMcUsage" value="SOLO"> SOLO</label>
+                  <label class="radio-label"><input type="radio" name="wcfMcUsage" value="Tricycle"> Tricycle</label>
+                  <label class="radio-label"><input type="radio" name="wcfMcUsage" value="Others"> Others</label>
+                </div>
+                <input type="text" id="wcfMcUsageOther" name="wcfMcUsageOther" placeholder="Specify other usage" style="display:none; margin-top:8px;">
+              </div>
+            </div>
+          </div>
+
+          <!-- Technical Assessment (A–D) -->
+          <div class="form-section">
+            <h3 class="section-title">Technical Assessment</h3>
+            <div class="form-row-full">
+              <div class="form-group">
+                <label for="wcfProblemComplaint">(A) Problem / Complaint Reported by Customer <span class="req">*</span></label>
+                <textarea id="wcfProblemComplaint" name="wcfProblemComplaint" rows="3" required aria-required="true" placeholder="Describe the problem or complaint reported by the customer..."></textarea>
+              </div>
+            </div>
+            <div class="form-row-full">
+              <div class="form-group">
+                <label for="wcfProbableCause">(B) Probable Cause of the Problem Evaluated by KSN</label>
+                <textarea id="wcfProbableCause" name="wcfProbableCause" rows="3" placeholder="Probable cause evaluation..."></textarea>
+              </div>
+            </div>
+            <div class="form-row-full">
+              <div class="form-group">
+                <label for="wcfCorrectiveAction">(C) Corrective Action from KSN</label>
+                <textarea id="wcfCorrectiveAction" name="wcfCorrectiveAction" rows="3" placeholder="Corrective action taken..."></textarea>
+              </div>
+            </div>
+            <div class="form-row-full">
+              <div class="form-group">
+                <label for="wcfSuggestionRemarks">(D) Suggestion for Improvement / Remarks by KSN</label>
+                <textarea id="wcfSuggestionRemarks" name="wcfSuggestionRemarks" rows="3" placeholder="Suggestions or remarks..."></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Parts Recommended for Replacement -->
+          <div class="form-section">
+            <h3 class="section-title">Parts Recommended for Replacement</h3>
+            <p style="font-size:0.9rem;color:var(--color-text-light);margin-bottom:12px">Causal Part / Main Defective Part</p>
+            <div class="form-row-3">
+              <div class="form-group">
+                <label for="wcfCausalPartNo">Part No.</label>
+                <input type="text" id="wcfCausalPartNo" name="wcfCausalPartNo" placeholder="Part number">
+              </div>
+              <div class="form-group">
+                <label for="wcfCausalPartName">Part Name</label>
+                <input type="text" id="wcfCausalPartName" name="wcfCausalPartName" placeholder="Part name">
+              </div>
+              <div class="form-group">
+                <label for="wcfCausalPartQty">Qty</label>
+                <input type="number" id="wcfCausalPartQty" name="wcfCausalPartQty" min="0" placeholder="0">
+              </div>
+            </div>
+
+            <div class="form-row-full">
+              <div class="form-group">
+                <label>Part Supply Method</label>
+                <div class="checkbox-group">
+                  <label class="checkbox-label"><input type="checkbox" name="wcfPartSupply" value="KMPC H.O."> Part to be sent by KMPC H.O.</label>
+                  <label class="checkbox-label"><input type="checkbox" name="wcfPartSupply" value="KSC"> Part to be served by KSC</label>
+                  <label class="checkbox-label"><input type="checkbox" name="wcfPartSupply" value="SP Dealer"> Buy parts from SP Dealer</label>
+                  <label class="checkbox-label"><input type="checkbox" name="wcfPartSupply" value="Use Stock"> Use stock for warranty</label>
+                </div>
+              </div>
+            </div>
+
+            <p style="font-size:0.9rem;font-weight:600;color:var(--color-secondary);margin:20px 0 12px">Affected Parts</p>
+            <table class="parts-table" id="affectedPartsTable">
+              <thead>
+                <tr>
+                  <th style="width:30%">Part No.</th>
+                  <th style="width:45%">Part Name</th>
+                  <th style="width:15%">Qty</th>
+                  <th style="width:10%"></th>
+                </tr>
+              </thead>
+              <tbody id="affectedPartsBody">
+                <tr>
+                  <td><input type="text" placeholder="Part No."></td>
+                  <td><input type="text" placeholder="Part Name"></td>
+                  <td><input type="number" min="0" placeholder="0"></td>
+                  <td><button type="button" class="btn-remove-row" onclick="removeAffectedPartRow(this)" title="Remove row">&times;</button></td>
+                </tr>
+              </tbody>
+            </table>
+            <button type="button" class="btn btn-secondary" style="font-size:0.85rem;padding:8px 16px" onclick="addAffectedPartRow()">+ Add Affected Part</button>
+
+            <div class="form-row-full" style="margin-top:16px">
+              <div class="form-group">
+                <label for="wcfUnitsSameProblem">No. of unit with the same problem, if any</label>
+                <input type="text" id="wcfUnitsSameProblem" name="wcfUnitsSameProblem" placeholder="Enter count or description">
+              </div>
+            </div>
+          </div>
+
+          <!-- Illustration Image Upload -->
+          <div class="form-section">
+            <h3 class="section-title">Illustration / Picture Indicating the Problem</h3>
+            <div class="file-upload-section">
+              <div class="file-input-wrapper">
+                <label for="wcfFileInput" class="file-input-label">
+                  <span>Choose Image <span class="req">*</span></span>
+                </label>
+                <input type="file" id="wcfFileInput" name="wcfFileInput" accept="image/*,.pdf" onchange="handleFileSelect(event, 'wcf')" aria-label="Upload illustration image for WCF" required aria-required="true">
+              </div>
+              <div id="wcfFileInfo" class="file-info" style="display:none;"></div>
+              <div id="wcfImagePreview" class="image-preview" style="display:none;"></div>
+              <div id="wcfUploadProgress" class="upload-progress"></div>
+              <p class="file-restrictions">Accepted: Images (JPG, PNG), PDF. Max size: 10 MB</p>
+              <p class="file-required-note"><strong>Required:</strong> Attach an image showing the problem. This will be embedded in the PDF.</p>
+            </div>
+          </div>
+
+          <!-- Delivery Information -->
+          <div class="form-section">
+            <h3 class="section-title">Delivery Information</h3>
+            <div class="form-row-full">
+              <div class="form-group">
+                <label for="wcfDeliverTo">Deliver To</label>
+                <input type="text" id="wcfDeliverTo" name="wcfDeliverTo" placeholder="Parts delivery destination">
+              </div>
+            </div>
+          </div>
+
+          <!-- Signatures / Authorization -->
+          <div class="form-section">
+            <h3 class="section-title">Signatures / Authorization</h3>
+            <div class="form-row-3">
+              <div class="form-group">
+                <label>Prepared by</label>
+                <input type="text" id="wcfPreparedByName" name="wcfPreparedByName" placeholder="Printed name" style="margin-bottom:8px">
+                <div class="signature-pad-container" style="margin-top:8px">
+                  <label style="font-size:0.85rem;color:#666;margin-bottom:4px;display:block">Signature</label>
+                  <canvas id="wcfPreparedBySignature" class="signature-canvas" width="250" height="100"></canvas>
+                  <button type="button" class="btn-clear-sig" onclick="clearSignature('wcfPreparedBySignature')">Clear</button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Acknowledged by <span class="hint">(Branch Mgr / Service Mgr)</span></label>
+                <input type="text" id="wcfAcknowledgedByName" name="wcfAcknowledgedByName" placeholder="Printed name" style="margin-bottom:8px">
+                <div class="signature-pad-container" style="margin-top:8px">
+                  <label style="font-size:0.85rem;color:#666;margin-bottom:4px;display:block">Signature</label>
+                  <canvas id="wcfAcknowledgedBySignature" class="signature-canvas" width="250" height="100"></canvas>
+                  <button type="button" class="btn-clear-sig" onclick="clearSignature('wcfAcknowledgedBySignature')">Clear</button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Warranty Repair Conducted by</label>
+                <input type="text" id="wcfWarrantyRepairName" name="wcfWarrantyRepairName" placeholder="Printed name" style="margin-bottom:8px">
+                <div class="signature-pad-container" style="margin-top:8px">
+                  <label style="font-size:0.85rem;color:#666;margin-bottom:4px;display:block">Signature</label>
+                  <canvas id="wcfWarrantyRepairSignature" class="signature-canvas" width="250" height="100"></canvas>
+                  <button type="button" class="btn-clear-sig" onclick="clearSignature('wcfWarrantyRepairSignature')">Clear</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Contact Information -->
+          <div class="form-section">
+            <h3 class="section-title">Contact Information</h3>
+            <div class="form-row-full">
+              <div class="form-group">
+                <label for="wcfEmail">Email Address <span class="req">*</span></label>
+                <input type="email" id="wcfEmail" name="wcfEmail" required aria-required="true" placeholder="your.email@example.com">
+                <span class="help-text">Required for status notifications and PDF delivery</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary" id="wcfSubmitBtn">Submit WCF &amp; Generate PDF</button>
+            <button type="button" class="btn btn-secondary" onclick="resetWCFForm()">Reset Form</button>
+          </div>
+        </form>
+
+        <!-- PDF Download (shown after successful submission) -->
+        <div id="wcfPdfDownload" class="pdf-download-section" style="display:none;">
+          <div class="pdf-download-card">
+            <span class="pdf-icon">&#128196;</span>
+            <div class="pdf-download-info">
+              <p class="pdf-download-title">WCF PDF Generated Successfully</p>
+              <p class="pdf-download-id" id="wcfPdfId"></p>
+            </div>
+            <a id="wcfPdfLink" href="#" target="_blank" class="btn btn-primary" style="font-size:0.9rem;padding:10px 20px">Download PDF</a>
+          </div>
+        </div>
+      </div>
+
     </main>
   </div>
 
@@ -856,7 +1412,7 @@
     'use strict';
 
     // File storage per form
-    var fileStorage = { wrc: null, fsc: null, wlp: null };
+    var fileStorage = { wrc: null, fsc: null, wlp: null, wcf: null };
 
     // ================================================================
     //  DATE FORMATTING: MMDDYYYY
@@ -1293,6 +1849,408 @@
     }
 
     // ================================================================
+    //  WCF FORM: SUBMISSION
+    // ================================================================
+
+    async function submitWCFForm(event) {
+      event.preventDefault();
+      var form = event.target;
+      if (!validateForm(form, 'wcf')) {
+        showMessage('wcfMessage', 'Please fill in all required fields before submitting.', true);
+        return;
+      }
+      if (!fileStorage.wcf) {
+        showMessage('wcfMessage', 'Please attach an illustration image.', true);
+        return;
+      }
+
+      setButtonLoading('wcfSubmitBtn', true);
+      document.getElementById('wcfPdfDownload').style.display = 'none';
+
+      // Upload illustration image
+      var illustrationUrl = '';
+      try {
+        illustrationUrl = await uploadFile(fileStorage.wcf, 'wcf');
+      } catch (error) {
+        setButtonLoading('wcfSubmitBtn', false);
+        showMessage('wcfMessage', 'Image upload failed: ' + error.message, true);
+        return;
+      }
+
+      // Collect MC Usage
+      var mcUsage = '';
+      document.querySelectorAll('input[name="wcfMcUsage"]').forEach(function(r) {
+        if (r.checked) mcUsage = r.value;
+      });
+
+      // Collect Part Supply Method
+      var partSupply = [];
+      document.querySelectorAll('input[name="wcfPartSupply"]:checked').forEach(function(cb) {
+        partSupply.push(cb.value);
+      });
+
+      // Collect affected parts
+      var affectedParts = [];
+      document.querySelectorAll('#affectedPartsBody tr').forEach(function(row) {
+        var inputs = row.querySelectorAll('input');
+        if (inputs.length >= 3 && (inputs[0].value.trim() || inputs[1].value.trim())) {
+          affectedParts.push({
+            partNo: inputs[0].value.trim(),
+            partName: inputs[1].value.trim(),
+            qty: inputs[2].value.trim()
+          });
+        }
+      });
+
+      var formData = {
+        branch: document.getElementById('wcfBranch').value,
+        preparedDate: formatDateToMMDDYYYY(document.getElementById('wcfPreparedDate').value),
+        jobOrderNo: document.getElementById('wcfJobOrderNo').value.trim(),
+        dealerName: document.getElementById('wcfDealerName').value.trim(),
+        dealerAddress: document.getElementById('wcfDealerAddress').value.trim(),
+        dealerPhone: document.getElementById('wcfDealerPhone').value.trim(),
+        customerName: document.getElementById('wcfCustomerName').value.trim(),
+        customerAddress: document.getElementById('wcfCustomerAddress').value.trim(),
+        customerPhone: document.getElementById('wcfCustomerPhone').value.trim(),
+        model: document.getElementById('wcfModel').value.trim(),
+        color: document.getElementById('wcfColor').value.trim(),
+        frameNo: document.getElementById('wcfFrameNo').value.trim(),
+        engineNo: document.getElementById('wcfEngineNo').value.trim(),
+        wrcNo: document.getElementById('wcfWrcNo').value.trim(),
+        purchaseDate: formatDateToMMDDYYYY(document.getElementById('wcfPurchaseDate').value),
+        failureDate: formatDateToMMDDYYYY(document.getElementById('wcfFailureDate').value),
+        reportedDate: formatDateToMMDDYYYY(document.getElementById('wcfReportedDate').value),
+        repairDate: formatDateToMMDDYYYY(document.getElementById('wcfRepairDate').value),
+        mcUsage: mcUsage,
+        mcUsageOther: document.getElementById('wcfMcUsageOther').value.trim(),
+        kilometerRun: document.getElementById('wcfKilometerRun').value,
+        problemComplaint: document.getElementById('wcfProblemComplaint').value.trim(),
+        probableCause: document.getElementById('wcfProbableCause').value.trim(),
+        correctiveAction: document.getElementById('wcfCorrectiveAction').value.trim(),
+        suggestionRemarks: document.getElementById('wcfSuggestionRemarks').value.trim(),
+        causalPartNo: document.getElementById('wcfCausalPartNo').value.trim(),
+        causalPartName: document.getElementById('wcfCausalPartName').value.trim(),
+        causalPartQty: document.getElementById('wcfCausalPartQty').value,
+        partSupplyMethod: partSupply.join(', '),
+        affectedParts: JSON.stringify(affectedParts),
+        unitsSameProblem: document.getElementById('wcfUnitsSameProblem').value.trim(),
+        deliverTo: document.getElementById('wcfDeliverTo').value.trim(),
+        preparedByName: document.getElementById('wcfPreparedByName').value.trim(),
+        preparedBySignature: getSignatureData('wcfPreparedBySignature'),
+        acknowledgedByName: document.getElementById('wcfAcknowledgedByName').value.trim(),
+        acknowledgedBySignature: getSignatureData('wcfAcknowledgedBySignature'),
+        warrantyRepairName: document.getElementById('wcfWarrantyRepairName').value.trim(),
+        warrantyRepairSignature: getSignatureData('wcfWarrantyRepairSignature'),
+        illustrationUrl: illustrationUrl,
+        email: document.getElementById('wcfEmail').value.trim(),
+        jobOrderNo: document.getElementById('wcfJobOrderNo').value.trim()
+      };
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          setButtonLoading('wcfSubmitBtn', false);
+          if (response.success) {
+            // Show success message with user email status detail
+            var successMsg = response.message;
+            if (response.userEmailStatus === 'SENT') {
+              successMsg += ' (Thank-you email sent to your inbox)';
+            } else if (response.userEmailStatus === 'FAILED') {
+              successMsg += ' (Warning: thank-you email failed: ' + (response.userEmailError || 'unknown error') + ')';
+            } else if (response.userEmailStatus === 'SKIPPED') {
+              successMsg += ' (User email skipped: ' + (response.userEmailError || 'no email') + ')';
+            }
+            showMessage('wcfMessage', successMsg, false);
+            
+            // Store data for modal with reliable Drive URLs
+            window.wcfSubmitData = {
+              wcfId: response.wcfId,
+              pdfUrl: response.pdfUrl,
+              pdfFileId: response.pdfFileId,
+              previewUrl: response.previewUrl,  // Drive preview URL
+              downloadUrl: response.downloadUrl,  // Drive download URL
+              branch: response.branch,
+              jobOrderNo: formData.jobOrderNo,
+              userEmailStatus: response.userEmailStatus || 'unknown',
+              userEmailError: response.userEmailError || '',
+              userEmailSentAt: response.userEmailSentAt || ''
+            };
+            
+            // Show modal instead of inline PDF download
+            showWcfModal(response);
+            
+            // Reset form and clear signatures
+            form.reset();
+            clearFileSelection('wcf');
+            clearSignature('wcfPreparedBySignature');
+            clearSignature('wcfAcknowledgedBySignature');
+            clearSignature('wcfWarrantyRepairSignature');
+            document.getElementById('wcfMcUsageOther').style.display = 'none';
+          } else {
+            showMessage('wcfMessage', response.message, true);
+          }
+        })
+        .withFailureHandler(function(error) {
+          setButtonLoading('wcfSubmitBtn', false);
+          showMessage('wcfMessage', 'Server error: ' + error.message, true);
+        })
+        .submitWCF(formData);
+    }
+
+    function resetWCFForm() {
+      document.getElementById('wcfForm').reset();
+      clearFileSelection('wcf');
+      document.getElementById('wcfMessage').classList.remove('visible');
+      document.getElementById('wcfMcUsageOther').style.display = 'none';
+      clearSignature('wcfPreparedBySignature');
+      clearSignature('wcfAcknowledgedBySignature');
+      clearSignature('wcfWarrantyRepairSignature');
+      // Reset affected parts table to single row
+      var tbody = document.getElementById('affectedPartsBody');
+      tbody.innerHTML = '<tr>'
+        + '<td><input type="text" placeholder="Part No."></td>'
+        + '<td><input type="text" placeholder="Part Name"></td>'
+        + '<td><input type="number" min="0" placeholder="0"></td>'
+        + '<td><button type="button" class="btn-remove-row" onclick="removeAffectedPartRow(this)" title="Remove row">&times;</button></td>'
+        + '</tr>';
+    }
+
+    // ================================================================
+    //  WCF: MC USAGE TOGGLE
+    // ================================================================
+
+    function toggleMcUsageOther() {
+      var othersRadio = document.querySelector('input[name="wcfMcUsage"][value="Others"]');
+      var otherInput = document.getElementById('wcfMcUsageOther');
+      if (othersRadio && otherInput) {
+        otherInput.style.display = othersRadio.checked ? 'block' : 'none';
+        if (!othersRadio.checked) otherInput.value = '';
+      }
+    }
+
+    // ================================================================
+    //  WCF: AFFECTED PARTS TABLE MANAGEMENT
+    // ================================================================
+
+    function addAffectedPartRow() {
+      var tbody = document.getElementById('affectedPartsBody');
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td><input type="text" placeholder="Part No."></td>'
+        + '<td><input type="text" placeholder="Part Name"></td>'
+        + '<td><input type="number" min="0" placeholder="0"></td>'
+        + '<td><button type="button" class="btn-remove-row" onclick="removeAffectedPartRow(this)" title="Remove row">&times;</button></td>';
+      tbody.appendChild(tr);
+    }
+
+    function removeAffectedPartRow(btn) {
+      var tbody = document.getElementById('affectedPartsBody');
+      if (tbody.rows.length > 1) {
+        btn.closest('tr').remove();
+      }
+    }
+
+    // ================================================================
+    //  WCF: SIGNATURE PAD HANDLING
+    // ================================================================
+
+    // Global signature pad state
+    var signaturePads = {};
+
+    function initSignaturePad(canvasId) {
+      var canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+
+      var ctx = canvas.getContext('2d');
+      var drawing = false;
+      var lastX = 0;
+      var lastY = 0;
+
+      signaturePads[canvasId] = {
+        canvas: canvas,
+        ctx: ctx,
+        isEmpty: true
+      };
+
+      function getPos(e) {
+        var rect = canvas.getBoundingClientRect();
+        var scaleX = canvas.width / rect.width;
+        var scaleY = canvas.height / rect.height;
+        
+        if (e.touches && e.touches.length > 0) {
+          return {
+            x: (e.touches[0].clientX - rect.left) * scaleX,
+            y: (e.touches[0].clientY - rect.top) * scaleY
+          };
+        }
+        return {
+          x: (e.clientX - rect.left) * scaleX,
+          y: (e.clientY - rect.top) * scaleY
+        };
+      }
+
+      function startDrawing(e) {
+        e.preventDefault();
+        drawing = true;
+        var pos = getPos(e);
+        lastX = pos.x;
+        lastY = pos.y;
+      }
+
+      function draw(e) {
+        if (!drawing) return;
+        e.preventDefault();
+        
+        var pos = getPos(e);
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        
+        ctx.beginPath();
+        ctx.moveTo(lastX, lastY);
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+        
+        lastX = pos.x;
+        lastY = pos.y;
+        signaturePads[canvasId].isEmpty = false;
+      }
+
+      function stopDrawing() {
+        drawing = false;
+      }
+
+      // Mouse events
+      canvas.addEventListener('mousedown', startDrawing);
+      canvas.addEventListener('mousemove', draw);
+      canvas.addEventListener('mouseup', stopDrawing);
+      canvas.addEventListener('mouseout', stopDrawing);
+
+      // Touch events
+      canvas.addEventListener('touchstart', startDrawing);
+      canvas.addEventListener('touchmove', draw);
+      canvas.addEventListener('touchend', stopDrawing);
+    }
+
+    function clearSignature(canvasId) {
+      var pad = signaturePads[canvasId];
+      if (pad && pad.canvas && pad.ctx) {
+        pad.ctx.clearRect(0, 0, pad.canvas.width, pad.canvas.height);
+        pad.isEmpty = true;
+      }
+    }
+
+    function getSignatureData(canvasId) {
+      var pad = signaturePads[canvasId];
+      if (!pad || pad.isEmpty) return '';
+      try {
+        return pad.canvas.toDataURL('image/png');
+      } catch (e) {
+        console.error('Error getting signature data:', e);
+        return '';
+      }
+    }
+
+    // ================================================================
+    //  WCF: POST-SUBMIT MODAL
+    // ================================================================
+
+    function showWcfModal(responseData) {
+      document.getElementById('wcfModalId').textContent = responseData.wcfId || '-';
+      document.getElementById('wcfModalJobOrder').textContent = responseData.jobOrderNo || '-';
+      document.getElementById('wcfModalBranch').textContent = responseData.branch || '-';
+      
+      // Show user email status in modal
+      var status = document.getElementById('wcfModalStatus');
+      status.className = 'wcf-modal-status';
+      if (responseData.userEmailStatus === 'SENT') {
+        status.textContent = '✓ Thank-you email sent to your inbox';
+        status.className = 'wcf-modal-status show success';
+      } else if (responseData.userEmailStatus === 'FAILED') {
+        status.textContent = '⚠ Thank-you email failed: ' + (responseData.userEmailError || 'unknown');
+        status.className = 'wcf-modal-status show error';
+      } else if (responseData.userEmailStatus === 'SKIPPED') {
+        status.textContent = 'ℹ User email skipped: ' + (responseData.userEmailError || 'N/A');
+        status.className = 'wcf-modal-status show';
+      } else {
+        status.textContent = '';
+      }
+      
+      // Enable all buttons
+      document.getElementById('wcfBtnPreview').disabled = false;
+      document.getElementById('wcfBtnDownload').disabled = false;
+      document.getElementById('wcfBtnEmail').disabled = false;
+      
+      // Show modal
+      document.getElementById('wcfSubmitModal').classList.add('active');
+    }
+
+    function closeWcfModal() {
+      document.getElementById('wcfSubmitModal').classList.remove('active');
+    }
+
+    function previewWcfPdf() {
+      // Use reliable Drive preview URL if available, fallback to pdfUrl
+      if (window.wcfSubmitData) {
+        var url = window.wcfSubmitData.previewUrl || window.wcfSubmitData.pdfUrl;
+        if (url) {
+          window.open(url, '_blank');
+        } else {
+          showWcfModalStatus('PDF preview URL not available', false);
+        }
+      }
+    }
+
+    function downloadWcfPdf() {
+      // Use reliable Drive download URL if available, fallback to pdfUrl
+      if (window.wcfSubmitData) {
+        var url = window.wcfSubmitData.downloadUrl || window.wcfSubmitData.pdfUrl;
+        if (url) {
+          window.open(url, '_blank');
+        } else {
+          showWcfModalStatus('PDF download URL not available', false);
+        }
+      }
+    }
+
+    function sendWcfEmail() {
+      if (!window.wcfSubmitData || !window.wcfSubmitData.wcfId) {
+        showWcfModalStatus('No WCF data available', false);
+        return;
+      }
+
+      var btn = document.getElementById('wcfBtnEmail');
+      var originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '⏳ Sending...';
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          btn.disabled = false;
+          btn.innerHTML = originalText;
+          
+          if (response.success) {
+            showWcfModalStatus('Email sent successfully to: ' + response.recipients.join(', '), true);
+            btn.disabled = true; // Prevent sending multiple times
+            btn.innerHTML = '✓ Email Sent';
+          } else {
+            showWcfModalStatus('Failed to send email: ' + response.message, false);
+          }
+        })
+        .withFailureHandler(function(error) {
+          btn.disabled = false;
+          btn.innerHTML = originalText;
+          showWcfModalStatus('Error sending email: ' + error.message, false);
+        })
+        .sendWcfEmailManual(window.wcfSubmitData.wcfId);
+    }
+
+    function showWcfModalStatus(message, isSuccess) {
+      var status = document.getElementById('wcfModalStatus');
+      status.textContent = message;
+      status.className = 'wcf-modal-status show ' + (isSuccess ? 'success' : 'error');
+    }
+
+    // ================================================================
     //  DYNAMIC DROPDOWN POPULATION
     // ================================================================
 
@@ -1373,7 +2331,38 @@
       if (overlay) {
         overlay.addEventListener('click', function(e) { if (e.target === overlay) closeWrcHelpModal(); });
       }
-      document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeWrcHelpModal(); });
+      
+      // Global Escape key handler for all modals
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          // Close WCF submit modal if open
+          var wcfModal = document.getElementById('wcfSubmitModal');
+          if (wcfModal && wcfModal.classList.contains('active')) {
+            closeWcfModal();
+            return;
+          }
+          // Close WRC help modal if open
+          closeWrcHelpModal();
+        }
+      });
+
+      // WCF: MC Usage radio change listeners
+      document.querySelectorAll('input[name="wcfMcUsage"]').forEach(function(radio) {
+        radio.addEventListener('change', toggleMcUsageOther);
+      });
+
+      // WCF: Initialize signature pads
+      initSignaturePad('wcfPreparedBySignature');
+      initSignaturePad('wcfAcknowledgedBySignature');
+      initSignaturePad('wcfWarrantyRepairSignature');
+      
+      // WCF: Close modal on overlay click
+      var wcfModal = document.getElementById('wcfSubmitModal');
+      if (wcfModal) {
+        wcfModal.addEventListener('click', function(e) {
+          if (e.target === wcfModal) closeWcfModal();
+        });
+      }
     });
   </script>
 
@@ -1415,6 +2404,51 @@
         <div class="modal-actions">
           <a href="mailto:NolanRalph_P@kmp.com.ph?subject=Request%20for%20WRC%20Number&body=VIN%2FCHASSIS%20NUMBER%3A%0A%0AENGINE%20NUMBER%3A%0A%0ADEALER%20NAME%3A%20GIANT%20MOTO%20PRO%0A%0ACOMPLETE%20SHIPPING%20ADDRESS%20(BRANCH%20ADDRESS)%3A%0A%0ANAME%20OF%20RECIPIENT%20OR%20RECEIVER%20(BRANCH%20MANAGER)%3A%0A%0ACONTACT%20NUMBER%3A%0A" class="btn-email" role="button">Open Email Client</a>
           <button type="button" class="btn-cancel" onclick="closeWrcHelpModal()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WCF Post-Submit Modal -->
+  <div id="wcfSubmitModal" class="wcf-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="wcfModalTitle">
+    <div class="wcf-modal">
+      <div class="wcf-modal-header">
+        <h2 id="wcfModalTitle" class="wcf-modal-title">
+          <span style="font-size:2rem">✓</span>
+          WCF Submission Successful
+        </h2>
+      </div>
+      <div class="wcf-modal-body">
+        <div class="wcf-modal-info">
+          <div class="wcf-modal-info-row">
+            <span class="wcf-modal-info-label">WCF ID:</span>
+            <span class="wcf-modal-info-value" id="wcfModalId">-</span>
+          </div>
+          <div class="wcf-modal-info-row">
+            <span class="wcf-modal-info-label">Job Order No.:</span>
+            <span class="wcf-modal-info-value" id="wcfModalJobOrder">-</span>
+          </div>
+          <div class="wcf-modal-info-row">
+            <span class="wcf-modal-info-label">Branch:</span>
+            <span class="wcf-modal-info-value" id="wcfModalBranch">-</span>
+          </div>
+        </div>
+
+        <div class="wcf-modal-status" id="wcfModalStatus"></div>
+
+        <div class="wcf-modal-actions">
+          <button type="button" class="wcf-modal-btn wcf-modal-btn-primary" id="wcfBtnPreview" onclick="previewWcfPdf()">
+            📄 Preview PDF
+          </button>
+          <button type="button" class="wcf-modal-btn wcf-modal-btn-primary" id="wcfBtnDownload" onclick="downloadWcfPdf()">
+            ⬇️ Download PDF
+          </button>
+          <button type="button" class="wcf-modal-btn wcf-modal-btn-success" id="wcfBtnEmail" onclick="sendWcfEmail()">
+            📧 Send to Email
+          </button>
+          <button type="button" class="wcf-modal-btn wcf-modal-btn-secondary" onclick="closeWcfModal()">
+            Done
+          </button>
         </div>
       </div>
     </div>
