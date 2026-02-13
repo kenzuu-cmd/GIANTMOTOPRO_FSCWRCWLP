@@ -298,6 +298,233 @@ const VALID_DEALER_CODES = [
   '20057','20058','20551','20059','20060','20061'
 ];
 
+/**
+ * Dealer Code to Dealer Name mapping
+ * This mapping is used to auto-derive dealer names from dealer codes.
+ */
+const DEALER_CODE_MAP = {
+  '20052': 'GIANT MOTO-BACAYAN',
+  '20053': 'GIANT MOTO-BARILI',
+  '20054': 'GIANT MOTO-CARMEN',
+  '20055': 'GIANT MOTO-CLARIN',
+  '20056': 'GIANT MOTO-CORDOVA',
+  '20051': 'GIANT MOTO-LAPULAPU',
+  '20057': 'GIANT MOTO-MINGLANILLA',
+  '20058': 'GIANT MOTO-SAN FERNANDO CEBU',
+  '20551': 'GIANT MOTO-TALISAY',
+  '20059': 'GIANT MOTO-TOLEDO',
+  '20060': 'GIANT MOTO-UBAY',
+  '20061': 'GIANT MOTO-V.RAMA'
+};
+
+/**
+ * Derive dealer name from dealer code.
+ * Used for WRC form auto-fill functionality.
+ * 
+ * @param {string} dealerCode - The dealer code (e.g., "20052")
+ * @return {string} The dealer name, or empty string if not found
+ */
+function deriveDealerName_(dealerCode) {
+  if (!dealerCode) return '';
+  var code = String(dealerCode).trim();
+  
+  // First try the mapping
+  if (DEALER_CODE_MAP[code]) {
+    return DEALER_CODE_MAP[code];
+  }
+  
+  // Fallback: try to parse from "20052 - GIANT MOTO-BACAYAN" format
+  if (code.indexOf(' - ') > -1) {
+    var parts = code.split(' - ');
+    if (parts.length > 1) {
+      return parts.slice(1).join(' - ').trim();
+    }
+  }
+  
+  return '';
+}
+
+// ================================================================
+//  REQUIRED FIELDS CONFIGURATION
+// ================================================================
+
+/**
+ * Master configuration for required fields across all forms.
+ * Used by both frontend and backend validation.
+ * 
+ * Field properties:
+ *  - key: payload property name
+ *  - label: human-readable field name for error messages
+ *  - type: 'text'|'date'|'select'|'file'|'signature'|'checkboxGroup'
+ *  - removed: true if field was intentionally removed from form
+ *  - optional: true if field is not required by business rules
+ *  - conditional: function(data) => boolean to determine if required based on other fields
+ */
+const REQUIRED_FIELDS = {
+  WRC: [
+    { key: 'wrcNo', label: 'WRC Number', type: 'text' },
+    { key: 'engineNo', label: 'Engine Number', type: 'text' },
+    { key: 'firstName', label: 'First Name', type: 'text' },
+    { key: 'lastName', label: 'Last Name', type: 'text' },
+    { key: 'contactNo', label: 'Contact Number', type: 'text' },
+    { key: 'email', label: 'Email Address', type: 'text' },
+    { key: 'branch', label: 'Branch', type: 'select' },
+    { key: 'datePurchased', label: 'Date Purchased', type: 'date' },
+    { key: 'dealerCode', label: 'Dealer Code', type: 'select' },
+    { key: 'dealerName', label: 'Dealer Name', removed: true }, // Auto-derived, not required
+    { key: 'fileUrl', label: 'Document/Image Upload', type: 'file' },
+    // Optional fields
+    { key: 'mi', label: 'Middle Initial', optional: true },
+    { key: 'munCity', label: 'Municipality/City', optional: true },
+    { key: 'province', label: 'Province', optional: true },
+    { key: 'customerAddress', label: 'Customer Address', optional: true },
+    { key: 'age', label: 'Age', optional: true },
+    { key: 'gender', label: 'Gender', optional: true }
+  ],
+  
+  FSC: [
+    { key: 'dealerTransNo', label: 'Dealer Transmittal Number', type: 'text' },
+    { key: 'dealerMechCode', label: 'Dealer/Mechanic Code', type: 'select' },
+    { key: 'wrcNumber', label: 'WRC Number', type: 'text' },
+    { key: 'frameNumber', label: 'Frame Number', type: 'text' },
+    { key: 'actualMileage', label: 'Actual Mileage', type: 'text' },
+    { key: 'repairedMonth', label: 'Repaired Date (Month)', type: 'date' },
+    { key: 'repairedDay', label: 'Repaired Date (Day)', type: 'date' },
+    { key: 'repairedYear', label: 'Repaired Date (Year)', type: 'date' },
+    { key: 'email', label: 'Email Address', type: 'text' },
+    { key: 'branch', label: 'Branch', type: 'select' },
+    { key: 'fileUrl', label: 'Document/Image Upload', type: 'file' },
+    { key: 'kscCode', label: 'KSC Code', removed: true }, // Field was removed
+    // Optional fields
+    { key: 'couponNumber', label: 'Coupon Number', optional: true }
+  ],
+  
+  WLP: [
+    { key: 'wrsNumber', label: 'WRS Number', type: 'text' },
+    { key: 'repairAckMonth', label: 'Repair Acknowledgment Date (Month)', type: 'date' },
+    { key: 'repairAckDay', label: 'Repair Acknowledgment Date (Day)', type: 'date' },
+    { key: 'repairAckYear', label: 'Repair Acknowledgment Date (Year)', type: 'date' },
+    { key: 'acknowledgedBy', label: 'Acknowledged By', type: 'text' },
+    { key: 'branch', label: 'Branch', type: 'select' },
+    { key: 'email', label: 'Email Address', type: 'text' },
+    { key: 'fileUrl', label: 'Document/Image Upload', type: 'file' }
+  ],
+  
+  WCF: [
+    // Dealer & Customer Info
+    { key: 'dealerName', label: "Dealer's Name", type: 'text' },
+    { key: 'dealerAddress', label: "Dealer's Address", type: 'text' },
+    { key: 'customerName', label: "Customer's Name", type: 'text' },
+    { key: 'customerAddress', label: "Customer's Address", type: 'text' },
+    // Unit Info
+    { key: 'model', label: 'Model', type: 'text' },
+    { key: 'frameNo', label: 'Frame Number', type: 'text' },
+    { key: 'engineNo', label: 'Engine Number', type: 'text' },
+    { key: 'kilometerRun', label: 'Kilometer Run', type: 'text' },
+    { key: 'mcUsage', label: 'MC Usage', type: 'select' },
+    // Dates
+    { key: 'purchaseDate', label: 'Purchase Date', type: 'date' },
+    { key: 'failureDate', label: 'Failure Date', type: 'date' },
+    { key: 'reportedDate', label: 'Reported Date', type: 'date' },
+    { key: 'repairDate', label: 'Repair Date', type: 'date' },
+    // Narratives
+    { key: 'problemComplaint', label: 'Problem/Complaint', type: 'text' },
+    { key: 'probableCause', label: 'Probable Cause', type: 'text' },
+    { key: 'correctiveAction', label: 'Corrective Action', type: 'text' },
+    // Parts
+    { key: 'causalPartNo', label: 'Causal Part Number', type: 'text' },
+    { key: 'causalPartName', label: 'Causal Part Name', type: 'text' },
+    { key: 'causalPartQty', label: 'Causal Part Quantity', type: 'text' },
+    // Signatures (currently hidden in UI)
+    { key: 'preparedByName', label: 'Prepared By Name', optional: true },
+    { key: 'acknowledgedByName', label: 'Acknowledged By Name', optional: true },
+    { key: 'warrantyRepairName', label: 'Warranty Repair Name', optional: true },
+    { key: 'branch', label: 'Branch', type: 'select' },
+    { key: 'email', label: 'Email Address', type: 'text' },
+    // Optional fields
+    { key: 'dealerPhone', label: 'Dealer Phone', optional: true },
+    { key: 'customerPhone', label: 'Customer Phone', optional: true },
+    { key: 'color', label: 'Color', optional: true },
+    { key: 'wrcNo', label: 'WRC No.', optional: true },
+    { key: 'jobOrderNo', label: 'Job Order No.', optional: true },
+    { key: 'preparedDate', label: 'Prepared Date', optional: true },
+    { key: 'suggestionRemarks', label: 'Suggestion/Remarks', optional: true },
+    { key: 'deliverTo', label: 'Deliver To', optional: true },
+    { key: 'partSupplyMethod', label: 'Part Supply Method', optional: true },
+    { key: 'affectedParts', label: 'Affected Parts', optional: true },
+    { key: 'illustrationFile', label: 'Illustration Image', optional: true },
+    { key: 'preparedBySig', label: 'Prepared By Signature', optional: true },
+    { key: 'acknowledgedBySig', label: 'Acknowledged By Signature', optional: true },
+    { key: 'warrantyRepairSig', label: 'Warranty Repair Signature', optional: true }
+  ]
+};
+
+/**
+ * Validate form submission data against required fields.
+ * 
+ * @param {string} formType - Form type: 'WRC', 'FSC', 'WLP', or 'WCF'
+ * @param {Object} data - Form data payload
+ * @return {Object} {ok: boolean, missing: Array, message: string}
+ */
+function validateSubmission_(formType, data) {
+  var requiredFields = REQUIRED_FIELDS[formType];
+  if (!requiredFields) {
+    return { ok: false, missing: [], message: 'Invalid form type: ' + formType };
+  }
+  
+  var missing = [];
+  
+  for (var i = 0; i < requiredFields.length; i++) {
+    var field = requiredFields[i];
+    
+    // Skip removed or optional fields
+    if (field.removed || field.optional) continue;
+    
+    // Check conditional requirements
+    if (field.conditional && typeof field.conditional === 'function') {
+      if (!field.conditional(data)) continue;
+    }
+    
+    var value = data[field.key];
+    var isEmpty = false;
+    
+    // Check if value is empty based on type
+    if (value === null || value === undefined) {
+      isEmpty = true;
+    } else if (typeof value === 'string') {
+      isEmpty = value.trim() === '';
+    } else if (typeof value === 'number') {
+      isEmpty = false; // 0 is valid
+    } else if (Array.isArray(value)) {
+      isEmpty = value.length === 0;
+    }
+    
+    if (isEmpty) {
+      missing.push({
+        key: field.key,
+        label: field.label,
+        type: field.type
+      });
+    }
+  }
+  
+  // Special handling for WRC: auto-derive dealer name if missing
+  if (formType === 'WRC' && !data.dealerName && data.dealerCode) {
+    data.dealerName = deriveDealerName_(data.dealerCode);
+  }
+  
+  if (missing.length > 0) {
+    var labels = missing.map(function(f) { return f.label; });
+    return {
+      ok: false,
+      missing: missing,
+      message: 'Required fields missing: ' + labels.join(', ')
+    };
+  }
+  
+  return { ok: true, missing: [], message: '' };
+}
+
 // ================================================================
 //  HELPER FUNCTIONS
 // ================================================================
@@ -340,12 +567,29 @@ function isDuplicate_(sheet, colIndex, value) {
 }
 
 /**
+ * OPTIMIZATION: Cache headers to avoid repeated getRange calls
  * Return all header names from row 1 as trimmed strings.
  */
+var _headerCache = {};
 function getHeaders_(sheet) {
   if (!sheet || sheet.getLastColumn() === 0) return [];
-  return sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
+  
+  var sheetName = sheet.getName();
+  if (_headerCache[sheetName]) {
+    return _headerCache[sheetName];
+  }
+  
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
     .map(function(h) { return String(h).trim(); });
+  _headerCache[sheetName] = headers;
+  return headers;
+}
+
+/**
+ * Clear header cache when columns are added/modified
+ */
+function clearHeaderCache_(sheetName) {
+  delete _headerCache[sheetName];
 }
 
 /**
@@ -377,9 +621,12 @@ function ensureColumnExists_(sheet, columnName, createIfMissing) {
   try {
     var headers = getHeaders_(sheet);
     var newCol = headers.length + 1;
-    sheet.getRange(1, newCol).setValue(columnName);
-    sheet.getRange(1, newCol).setFontWeight('bold');
-    sheet.getRange(1, newCol).setBackground('#f3f3f3');
+    // OPTIMIZATION: Batch formatting in one call instead of 3 separate calls
+    var headerCell = sheet.getRange(1, newCol);
+    headerCell.setValue(columnName)
+      .setFontWeight('bold')
+      .setBackground('#f3f3f3');
+    clearHeaderCache_(sheet.getName()); // Update cache
     logInfo_('Created column "' + columnName + '" at position ' + newCol, sheet.getName(), 1);
     return newCol;
   } catch (err) {
@@ -537,6 +784,17 @@ function onOpen() {
 
 function submitWRC(formData) {
   try {
+    // ---- Centralized Validation ----
+    var validation = validateSubmission_('WRC', formData);
+    if (!validation.ok) {
+      return {
+        success: false,
+        errorType: 'VALIDATION',
+        missing: validation.missing,
+        message: validation.message
+      };
+    }
+
     var sheet = getSheet_(SHEET_WRC, [
       'WRC No.', 'ENGINE No.', 'First Name', 'MI', 'LAST NAME',
       'MUN./CITY', 'PROVINCE', 'CONTACT NO. OF CUSTOMER', 'DATE PURCHASED',
@@ -544,23 +802,7 @@ function submitWRC(formData) {
       'Attachment URL', 'BRANCH', 'EMAIL', 'STATUS'
     ]);
 
-    // ---- Validation ----
-    var missing = [];
-    if (!formData.wrcNo       || !String(formData.wrcNo).trim())       missing.push('WRC Number');
-    if (!formData.engineNo    || !String(formData.engineNo).trim())    missing.push('Engine Number');
-    if (!formData.firstName   || !String(formData.firstName).trim())   missing.push('First Name');
-    if (!formData.lastName    || !String(formData.lastName).trim())    missing.push('Last Name');
-    if (!formData.contactNo   || !String(formData.contactNo).trim())   missing.push('Contact Number');
-    if (!formData.email       || !String(formData.email).trim())       missing.push('Email Address');
-    if (!formData.branch      || !String(formData.branch).trim())      missing.push('Branch');
-    if (!formData.datePurchased || !String(formData.datePurchased).trim()) missing.push('Date Purchased');
-    if (!formData.dealerCode  || !String(formData.dealerCode).trim())  missing.push('Dealer Code');
-    if (!formData.fileUrl     || !String(formData.fileUrl).trim())     missing.push('File/Document Upload');
-
-    if (missing.length > 0) {
-      return { success: false, message: 'Required fields missing: ' + missing.join(', ') };
-    }
-
+    // ---- Additional Business Logic Validation ----
     // Email format
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       return { success: false, message: 'Invalid email address format.' };
@@ -590,6 +832,11 @@ function submitWRC(formData) {
     // ---- Resolve attachment column (handles legacy 'File/Image Link' sheets) ----
     var attachInfo = ensureAttachmentColumn_(sheet, 'Attachment URL');
 
+    // ---- Auto-derive dealer name from dealer code ----
+    var derivedDealerName = deriveDealerName_(formData.dealerCode);
+    // Use derived name if available, otherwise fall back to submitted value (backward compatibility)
+    var finalDealerName = derivedDealerName || formData.dealerName || '';
+
     // ---- Build field map ----
     var fieldMap = {
       'WRC No.':                   formData.wrcNo,
@@ -601,7 +848,7 @@ function submitWRC(formData) {
       'PROVINCE':                  formData.province || '',
       'CONTACT NO. OF CUSTOMER':   formData.contactNo,
       'DATE PURCHASED':            normalizedDate,
-      'DEALER NAME':               formData.dealerName || '',
+      'DEALER NAME':               finalDealerName,
       'Customer ADDRESS':          formData.customerAddress || '',
       'AGE':                       formData.age || '',
       'GENDER':                    formData.gender || '',
@@ -628,10 +875,10 @@ function submitWRC(formData) {
       return { success: false, message: 'System error: Could not save data. Contact administrator.' };
     }
 
-    // Send confirmation email
+    // Send confirmation email (use derived dealer name)
     sendPendingConfirmationEmail(
       formData.email, 'WRC', formData.wrcNo, formData.engineNo,
-      formData.branch, formData.dealerName
+      formData.branch, finalDealerName
     );
 
     return {
@@ -652,6 +899,17 @@ function submitWRC(formData) {
 
 function submitFSC(formData) {
   try {
+    // ---- Centralized Validation ----
+    var validation = validateSubmission_('FSC', formData);
+    if (!validation.ok) {
+      return {
+        success: false,
+        errorType: 'VALIDATION',
+        missing: validation.missing,
+        message: validation.message
+      };
+    }
+
     var sheet = getSheet_(SHEET_FSC, [
       'Dealer Transmittal No.', 'Dealer/Mechanic Code', 'WRC Number',
       'Frame Number', 'Coupon Number', 'Actual Mileage',
@@ -659,24 +917,7 @@ function submitFSC(formData) {
       'Dealer Code', 'Attachment URL', 'BRANCH', 'EMAIL', 'STATUS'
     ]);
 
-    // ---- Validation ----
-    var missing = [];
-    if (!formData.dealerTransNo  || !String(formData.dealerTransNo).trim())  missing.push('Dealer Transmittal Number');
-    if (!formData.dealerMechCode || !String(formData.dealerMechCode).trim()) missing.push('Dealer/Mechanic Code');
-    if (!formData.wrcNumber      || !String(formData.wrcNumber).trim())      missing.push('WRC Number');
-    if (!formData.frameNumber    || !String(formData.frameNumber).trim())    missing.push('Frame Number');
-    if (!formData.actualMileage  || !String(formData.actualMileage).trim())  missing.push('Actual Mileage');
-    if (!formData.repairedMonth  || !String(formData.repairedMonth).trim())  missing.push('Repaired Date (Month)');
-    if (!formData.repairedDay    || !String(formData.repairedDay).trim())    missing.push('Repaired Date (Day)');
-    if (!formData.repairedYear   || !String(formData.repairedYear).trim())   missing.push('Repaired Date (Year)');
-    if (!formData.email          || !String(formData.email).trim())          missing.push('Email Address');
-    if (!formData.branch         || !String(formData.branch).trim())         missing.push('Branch');
-    if (!formData.fileUrl        || !String(formData.fileUrl).trim())        missing.push('File/Document Upload');
-
-    if (missing.length > 0) {
-      return { success: false, message: 'Required fields missing: ' + missing.join(', ') };
-    }
-
+    // ---- Additional Business Logic Validation ----
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       return { success: false, message: 'Invalid email address format.' };
     }
@@ -753,6 +994,17 @@ function submitFSC(formData) {
 
 function submitWLP(formData) {
   try {
+    // ---- Centralized Validation ----
+    var validation = validateSubmission_('WLP', formData);
+    if (!validation.ok) {
+      return {
+        success: false,
+        errorType: 'VALIDATION',
+        missing: validation.missing,
+        message: validation.message
+      };
+    }
+
     var sheet = getSheet_(SHEET_WLP, [
       'WRS Number', 'Repair Acknowledged Month', 'Repair Acknowledged Day',
       'Repair Acknowledged Year', 'Acknowledged By: (Customer Name)',
@@ -760,21 +1012,7 @@ function submitWLP(formData) {
       'Attachment URL', 'BRANCH', 'EMAIL', 'STATUS'
     ]);
 
-    // ---- Validation ----
-    var missing = [];
-    if (!formData.wrsNumber      || !String(formData.wrsNumber).trim())      missing.push('WRS Number');
-    if (!formData.repairAckMonth || !String(formData.repairAckMonth).trim()) missing.push('Repair Acknowledged Date (Month)');
-    if (!formData.repairAckDay   || !String(formData.repairAckDay).trim())   missing.push('Repair Acknowledged Date (Day)');
-    if (!formData.repairAckYear  || !String(formData.repairAckYear).trim())  missing.push('Repair Acknowledged Date (Year)');
-    if (!formData.acknowledgedBy || !String(formData.acknowledgedBy).trim()) missing.push('Acknowledged By');
-    if (!formData.email          || !String(formData.email).trim())          missing.push('Email Address');
-    if (!formData.branch         || !String(formData.branch).trim())         missing.push('Branch');
-    if (!formData.fileUrl        || !String(formData.fileUrl).trim())        missing.push('File/Document Upload');
-
-    if (missing.length > 0) {
-      return { success: false, message: 'Required fields missing: ' + missing.join(', ') };
-    }
-
+    // ---- Additional Business Logic Validation ----
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       return { success: false, message: 'Invalid email address format.' };
     }
@@ -927,27 +1165,20 @@ function generateWcfId_() {
 
 function submitWCF(formData) {
   try {
+    // ---- Centralized Validation ----
+    var validation = validateSubmission_('WCF', formData);
+    if (!validation.ok) {
+      return {
+        success: false,
+        errorType: 'VALIDATION',
+        missing: validation.missing,
+        message: validation.message
+      };
+    }
+
     var sheet = getSheet_(SHEET_WCF, WCF_HEADERS);
 
-    // ---- Validation ----
-    var missing = [];
-    if (!formData.branch          || !String(formData.branch).trim())          missing.push('Branch');
-    if (!formData.preparedDate    || !String(formData.preparedDate).trim())    missing.push('Prepared Date');
-    if (!formData.dealerName      || !String(formData.dealerName).trim())      missing.push('Dealer Name');
-    if (!formData.customerName    || !String(formData.customerName).trim())    missing.push('Customer Name');
-    if (!formData.model           || !String(formData.model).trim())           missing.push('Model');
-    if (!formData.frameNo         || !String(formData.frameNo).trim())         missing.push('Frame No.');
-    if (!formData.engineNo        || !String(formData.engineNo).trim())        missing.push('Engine No.');
-    if (!formData.wrcNo           || !String(formData.wrcNo).trim())           missing.push('WRC No.');
-    if (!formData.purchaseDate    || !String(formData.purchaseDate).trim())    missing.push('Purchase Date');
-    if (!formData.failureDate     || !String(formData.failureDate).trim())     missing.push('Failure Date');
-    if (!formData.problemComplaint|| !String(formData.problemComplaint).trim())missing.push('Problem/Complaint');
-    if (!formData.email           || !String(formData.email).trim())           missing.push('Email');
-    if (!formData.illustrationUrl || !String(formData.illustrationUrl).trim()) missing.push('Illustration Image');
-
-    if (missing.length > 0) {
-      return { success: false, message: 'Required fields missing: ' + missing.join(', ') };
-    }
+    // ---- Additional Business Logic Validation ----
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       return { success: false, message: 'Invalid email address format.' };
     }
@@ -961,6 +1192,32 @@ function submitWCF(formData) {
     var failDate   = normalizeDateMMDDYYYY_(formData.failureDate);
     var repDate    = formData.reportedDate ? normalizeDateMMDDYYYY_(formData.reportedDate) : '';
     var repairDate = formData.repairDate   ? normalizeDateMMDDYYYY_(formData.repairDate)   : '';
+
+    // Normalize causal part fields (supporting alternate key shapes)
+    function pickVal_(val) {
+      return (val === null || val === undefined) ? '' : String(val);
+    }
+
+    var causalPartNo = pickVal_(formData.causalPartNo).trim();
+    if (causalPartNo === '') causalPartNo = pickVal_(formData.causalPartNO).trim();
+    if (causalPartNo === '') causalPartNo = pickVal_(formData['Causal Part No']).trim();
+
+    var causalPartName = pickVal_(formData.causalPartName).trim();
+    if (causalPartName === '') causalPartName = pickVal_(formData.causalPartNAME).trim();
+    if (causalPartName === '') causalPartName = pickVal_(formData['Causal Part Name']).trim();
+
+    var causalPartQtyRaw = pickVal_(formData.causalPartQty).trim();
+    if (causalPartQtyRaw === '') causalPartQtyRaw = pickVal_(formData.causalPartQTY).trim();
+    if (causalPartQtyRaw === '') causalPartQtyRaw = pickVal_(formData['Causal Part Qty']).trim();
+
+    // Causal Part Qty validation/format normalization
+    var causalPartQty = '';
+    if (causalPartQtyRaw !== '') {
+      if (!/^\d+$/.test(causalPartQtyRaw)) {
+        return { success: false, message: 'Causal Part Qty must be a whole number (0 or greater).' };
+      }
+      causalPartQty = String(parseInt(causalPartQtyRaw, 10));
+    }
 
     // Save signatures to Drive (if provided)
     var preparedSigUrl = '';
@@ -1013,9 +1270,9 @@ function submitWCF(formData) {
       'Probable Cause':               formData.probableCause || '',
       'Corrective Action':            formData.correctiveAction || '',
       'Suggestion Remarks':           formData.suggestionRemarks || '',
-      'Causal Part No':               formData.causalPartNo || '',
-      'Causal Part Name':             formData.causalPartName || '',
-      'Causal Part Qty':              formData.causalPartQty || '',
+      'Causal Part No':               causalPartNo,
+      'Causal Part Name':             causalPartName,
+      'Causal Part Qty':              causalPartQty,
       'Part Supply Method':           formData.partSupplyMethod || '',
       'Affected Parts':               formData.affectedParts || '',
       'Units Same Problem':           formData.unitsSameProblem || '',
@@ -1062,14 +1319,17 @@ function submitWCF(formData) {
     var userEmailStatus = 'not sent';
     
     try {
-      var pdfData = {};
-      for (var k in formData) pdfData[k] = formData[k];
+      // OPTIMIZATION: Use Object.assign instead of loop for shallow copy
+      var pdfData = Object.assign({}, formData);
       pdfData.wcfId       = wcfId;
       pdfData.preparedDate = prepDate;
       pdfData.purchaseDate = purchDate;
       pdfData.failureDate  = failDate;
       pdfData.reportedDate = repDate;
       pdfData.repairDate   = repairDate;
+      pdfData.causalPartNo = causalPartNo;
+      pdfData.causalPartName = causalPartName;
+      pdfData.causalPartQty = causalPartQty;
       // Add signature URLs for template population
       pdfData.preparedBySignatureUrl = preparedSigUrl;
       pdfData.acknowledgedBySignatureUrl = acknowledgedSigUrl;
@@ -1081,17 +1341,18 @@ function submitWCF(formData) {
         pdfUrl = pdfResult.url;
         pdfFileId = pdfResult.id;
         
-        // Atomic write-back: detect columns dynamically and update the exact row
+        // OPTIMIZATION: Batch write PDF URL + ID in single operation
         var pdfUrlCol = findColumnByHeader_(sheet, 'PDF URL');
         var pdfIdCol = findColumnByHeader_(sheet, 'PDF File ID');
         
-        if (pdfUrlCol > 0) {
-          sheet.getRange(rowNumber, pdfUrlCol).setValue(pdfUrl);
-          logInfo_('PDF URL written to row ' + rowNumber + ', col ' + pdfUrlCol, wcfId, '');
-        }
-        if (pdfIdCol > 0) {
-          sheet.getRange(rowNumber, pdfIdCol).setValue(pdfFileId);
-          logInfo_('PDF File ID written to row ' + rowNumber + ', col ' + pdfIdCol, wcfId, '');
+        if (pdfUrlCol > 0 && pdfIdCol > 0) {
+          // Both columns exist - batch write
+          sheet.getRange(rowNumber, Math.min(pdfUrlCol, pdfIdCol), 1, Math.abs(pdfUrlCol - pdfIdCol) + 1)
+            .setValues([[pdfUrlCol < pdfIdCol ? pdfUrl : pdfFileId, pdfUrlCol < pdfIdCol ? pdfFileId : pdfUrl]]);
+          logInfo_('PDF URL + ID written to row ' + rowNumber, wcfId, '');
+        } else {
+          if (pdfUrlCol > 0) sheet.getRange(rowNumber, pdfUrlCol).setValue(pdfUrl);
+          if (pdfIdCol > 0) sheet.getRange(rowNumber, pdfIdCol).setValue(pdfFileId);
         }
       } else {
         logError_('PDF generation failed or incomplete', wcfId, '');
@@ -1137,17 +1398,25 @@ function submitWCF(formData) {
       }
     }
 
-    // Write-back user email status columns to the SAME row (create cols if missing)
+    // OPTIMIZATION: Batch write user email status columns in single operation
     try {
       var ueCol      = ensureColumnExists_(sheet, 'USER EMAIL', true);
       var ueStatCol  = ensureColumnExists_(sheet, 'USER EMAIL STATUS', true);
       var ueErrCol   = ensureColumnExists_(sheet, 'USER EMAIL ERROR', true);
       var ueSentCol  = ensureColumnExists_(sheet, 'USER EMAIL SENT AT', true);
 
-      if (ueCol > 0)     sheet.getRange(rowNumber, ueCol).setValue(userEmail);
-      if (ueStatCol > 0) sheet.getRange(rowNumber, ueStatCol).setValue(userEmailStatus);
-      if (ueErrCol > 0)  sheet.getRange(rowNumber, ueErrCol).setValue(userEmailError);
-      if (ueSentCol > 0) sheet.getRange(rowNumber, ueSentCol).setValue(userEmailSentAt);
+      // Batch all 4 writes into one setValues call
+      var minCol = Math.min(ueCol, ueStatCol, ueErrCol, ueSentCol);
+      var maxCol = Math.max(ueCol, ueStatCol, ueErrCol, ueSentCol);
+      var rangeWidth = maxCol - minCol + 1;
+      var rowData = new Array(rangeWidth).fill('');
+      
+      if (ueCol > 0) rowData[ueCol - minCol] = userEmail;
+      if (ueStatCol > 0) rowData[ueStatCol - minCol] = userEmailStatus;
+      if (ueErrCol > 0) rowData[ueErrCol - minCol] = userEmailError;
+      if (ueSentCol > 0) rowData[ueSentCol - minCol] = userEmailSentAt;
+      
+      sheet.getRange(rowNumber, minCol, 1, rangeWidth).setValues([rowData]);
       logInfo_('User email status written to row ' + rowNumber + ': ' + userEmailStatus, wcfId, '');
     } catch (wbErr) {
       logError_('User email status write-back failed: ' + wbErr.message, wcfId, '');
@@ -1374,12 +1643,65 @@ function generateWcfPdfFromHtml_(wcfId, d) {
     var warSigBase64 = driveUrlToBase64_(d.warrantyRepairSignatureUrl);
 
     // 2. Parse affected parts
+    // NOTE: The print template expects an ARRAY for data.affectedParts.
+    // The form submits affectedParts as a JSON string.
     var affectedParts = [];
     try {
-      if (d.affectedParts) affectedParts = JSON.parse(d.affectedParts);
+      if (d.affectedParts && typeof d.affectedParts === 'string') {
+        affectedParts = JSON.parse(d.affectedParts);
+      } else if (Array.isArray(d.affectedParts)) {
+        affectedParts = d.affectedParts;
+      }
     } catch (e) {
       Logger.log('[WCF HTML PDF] Affected parts parse error: ' + e.message);
     }
+
+    // Hydrate payload for template binding consistency
+    d.affectedParts = affectedParts;
+
+    // Normalize causal part fields right before rendering.
+    // This prevents “empty in PDF” even if upstream key shapes vary.
+    function pickFirst_(obj, keys) {
+      for (var i = 0; i < keys.length; i++) {
+        var k = keys[i];
+        if (!obj) continue;
+        if (Object.prototype.hasOwnProperty.call(obj, k)) {
+          var v = obj[k];
+          if (v === 0) return '0';
+          if (v === null || v === undefined) continue;
+          var s = String(v).trim();
+          if (s !== '') return s;
+        }
+      }
+      return '';
+    }
+
+    var causalNo = pickFirst_(d, ['causalPartNo', 'causalPartNO', 'Causal Part No', 'CausalPartNo', 'causal_part_no']);
+    var causalName = pickFirst_(d, ['causalPartName', 'causalPartNAME', 'Causal Part Name', 'CausalPartName', 'causal_part_name']);
+    var causalQty = pickFirst_(d, ['causalPartQty', 'causalPartQTY', 'Causal Part Qty', 'CausalPartQty', 'causal_part_qty']);
+
+    d.causalPartNo = causalNo;
+    d.causalPartName = causalName;
+    d.causalPartQty = causalQty;
+
+    // Duplicate to common alternate keys used by templates / older code.
+    d.causalPartNO = causalNo;
+    d.causalPartNAME = causalName;
+    d.causalPartQTY = causalQty;
+    d['Causal Part No'] = causalNo;
+    d['Causal Part Name'] = causalName;
+    d['Causal Part Qty'] = causalQty;
+
+    // Normalize units same problem field
+    var unitsSame = pickFirst_(d, ['unitsSameProblem', 'unitssameproblem', 'Units Same Problem', 'units_same_problem']);
+    d.unitsSameProblem = unitsSame;
+    d.unitssameproblem = unitsSame;
+    d['Units Same Problem'] = unitsSame;
+
+    Logger.log('[WCF HTML PDF] Causal part values: No=' + JSON.stringify(d.causalPartNo) +
+               ', Name=' + JSON.stringify(d.causalPartName) +
+               ', Qty=' + JSON.stringify(d.causalPartQty) +
+               ', UnitsSame=' + JSON.stringify(d.unitsSameProblem));
 
     // 3. Parse rejection reasons
     var rejectReasons = [];
@@ -1737,9 +2059,9 @@ function generateWcfPdfViaSheet_(d) {
     // 4. Apply print formatting (wrapping, row heights, alignment) — temp sheet only
     formatWcfPrintSheet_(tempSheet);
 
-    // 5. Flush + wait for images
+    // 5. Flush (OPTIMIZATION: removed 1.5s delay - images load faster without blocking)
     SpreadsheetApp.flush();
-    Utilities.sleep(1500);
+    // REMOVED: Utilities.sleep(1500); - This 1.5-second delay was causing major lag!
 
     // 6. Export PDF
     var pdfBlob = exportSheetToPdf_(ss, tempSheet.getSheetId(), 'WCF-' + d.wcfId + '.pdf');
@@ -2503,16 +2825,35 @@ function sendWcfEmailManual(wcfId) {
     var emailRecipientsCol = headers.indexOf('Email Recipients');
     var emailStatusCol = headers.indexOf('Email Status');
 
+    // OPTIMIZATION: Batch write all email status columns in one operation
     var timestamp = Utilities.formatDate(new Date(), 'Asia/Manila', 'yyyy-MM-dd HH:mm:ss');
+    var emailUpdateData = [];
+    var emailUpdateCols = [];
     
     if (emailSentAtCol >= 0) {
-      sheet.getRange(rowIndex, emailSentAtCol + 1).setValue(timestamp);
+      emailUpdateCols.push(emailSentAtCol + 1);
+      emailUpdateData.push(timestamp);
     }
     if (emailRecipientsCol >= 0) {
-      sheet.getRange(rowIndex, emailRecipientsCol + 1).setValue(recipients.join(', '));
+      emailUpdateCols.push(emailRecipientsCol + 1);
+      emailUpdateData.push(recipients.join(', '));
     }
     if (emailStatusCol >= 0) {
-      sheet.getRange(rowIndex, emailStatusCol + 1).setValue('SENT');
+      emailUpdateCols.push(emailStatusCol + 1);
+      emailUpdateData.push('SENT');
+    }
+    
+    // Write all updates in batch if columns are contiguous
+    if (emailUpdateCols.length > 0) {
+      var minCol = Math.min.apply(null, emailUpdateCols);
+      var maxCol = Math.max.apply(null, emailUpdateCols);
+      var rowDataArray = new Array(maxCol - minCol + 1).fill('');
+      
+      for (var i = 0; i < emailUpdateCols.length; i++) {
+        rowDataArray[emailUpdateCols[i] - minCol] = emailUpdateData[i];
+      }
+      
+      sheet.getRange(rowIndex, minCol, 1, rowDataArray.length).setValues([rowDataArray]);
     }
 
     return {
