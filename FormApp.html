@@ -716,14 +716,8 @@
                 <span class="help-text">Stored as mmddyyyy without slashes</span>
               </div>
               <div class="form-group">
-                <label for="dealerName">Dealer Name <span class="hint">(GIANT MOTO PRO CORP.)</span></label>
-                <input type="text" id="dealerName" name="dealerName" placeholder="Dealer name">
-              </div>
-            </div>
-            <div class="form-row-full">
-              <div class="form-group">
                 <label for="wrcDealerCode">Dealer Code <span class="req">*</span></label>
-                <select id="wrcDealerCode" name="wrcDealerCode" required aria-required="true">
+                <select id="wrcDealerCode" name="wrcDealerCode" required aria-required="true" onchange="updateDealerNameDisplay()">
                   <option value="">Select Dealer Code</option>
                   <option value="20052">20052 - GIANT MOTO-BACAYAN</option>
                   <option value="20053">20053 - GIANT MOTO-BARILI</option>
@@ -738,6 +732,13 @@
                   <option value="20060">20060 - GIANT MOTO-UBAY</option>
                   <option value="20061">20061 - GIANT MOTO-V.RAMA</option>
                 </select>
+              </div>
+            </div>
+            <div class="form-row-full">
+              <div class="form-group">
+                <label for="wrcDealerNameDisplay">Dealer Name <span class="hint">(auto-filled)</span></label>
+                <input type="text" id="wrcDealerNameDisplay" name="wrcDealerNameDisplay" placeholder="Select dealer code above" disabled readonly style="background-color: var(--color-bg-alt); color: var(--color-text-light);">
+                <span class="help-text">Automatically filled based on selected Dealer Code</span>
               </div>
             </div>
           </div>
@@ -879,15 +880,11 @@
           <!-- Repair Information -->
           <div class="form-section">
             <h3 class="section-title">Repair Information</h3>
-            <div class="form-row-2">
+            <div class="form-row-full">
               <div class="form-group">
                 <label for="repairedDate">Repaired Date <span class="req">*</span></label>
                 <input type="date" id="repairedDate" name="repairedDate" required aria-required="true">
                 <span class="help-text">Split into Month/Day/Year columns</span>
-              </div>
-              <div class="form-group">
-                <label for="kscCode">KSC Code <span class="hint">(required)</span></label>
-                <input type="text" id="kscCode" name="kscCode" placeholder="KSC code">
               </div>
             </div>
           </div>
@@ -1283,20 +1280,29 @@
             </div>
 
             <p style="font-size:0.9rem;font-weight:600;color:var(--color-secondary);margin:20px 0 12px">Affected Parts</p>
-            <table class="parts-table" id="affectedPartsTable">
+            <table class="parts-table" id="affectedPartsTable" style="width:100%;">
               <thead>
                 <tr>
-                  <th style="width:30%">Part No.</th>
-                  <th style="width:45%">Part Name</th>
-                  <th style="width:15%">Qty</th>
-                  <th style="width:10%"></th>
+                  <th style="width:20%">Part No.</th>
+                  <th style="width:30%">Part Name</th>
+                  <th style="width:8%">Qty</th>
+                  <th style="width:38%">Part Supply Method</th>
+                  <th style="width:4%"></th>
                 </tr>
               </thead>
               <tbody id="affectedPartsBody">
                 <tr>
-                  <td><input type="text" placeholder="Part No."></td>
-                  <td><input type="text" placeholder="Part Name"></td>
-                  <td><input type="number" min="0" placeholder="0"></td>
+                  <td><input type="text" class="part-no" placeholder="Part No."></td>
+                  <td><input type="text" class="part-name" placeholder="Part Name"></td>
+                  <td><input type="number" class="part-qty" min="0" placeholder="0"></td>
+                  <td>
+                    <div class="checkbox-group" style="display:flex;flex-wrap:wrap;gap:4px;font-size:0.75rem;">
+                      <label class="checkbox-label" style="margin:0;white-space:nowrap;"><input type="checkbox" class="supply-kmpc" value="KMPC H.O."> KMPC H.O.</label>
+                      <label class="checkbox-label" style="margin:0;white-space:nowrap;"><input type="checkbox" class="supply-ksc" value="KSC"> KSC</label>
+                      <label class="checkbox-label" style="margin:0;white-space:nowrap;"><input type="checkbox" class="supply-dealer" value="SP Dealer"> SP Dealer</label>
+                      <label class="checkbox-label" style="margin:0;white-space:nowrap;"><input type="checkbox" class="supply-stock" value="Use Stock"> Warranty Stock</label>
+                    </div>
+                  </td>
                   <td><button type="button" class="btn-remove-row" onclick="removeAffectedPartRow(this)" title="Remove row">&times;</button></td>
                 </tr>
               </tbody>
@@ -1340,7 +1346,7 @@
             </div>
           </div>
 
-          <!-- Signatures / Authorization -->
+          <!-- Signatures / Authorization (temporarily hidden)
           <div class="form-section">
             <h3 class="section-title">Signatures / Authorization</h3>
             <div class="form-row-3">
@@ -1373,6 +1379,7 @@
               </div>
             </div>
           </div>
+          -->
 
           <!-- Contact Information -->
           <div class="form-section">
@@ -1574,12 +1581,14 @@
       var missingFields = [];
       var isValid = true;
 
+      // Clear previous errors
       inputs.forEach(function(input) {
         input.classList.remove('field-error');
         var errorMsg = input.parentElement.querySelector('.error-message');
         if (errorMsg) errorMsg.remove();
       });
 
+      // Validate each required field
       inputs.forEach(function(input) {
         var fieldLabel = '';
         var label = input.parentElement.querySelector('label');
@@ -1587,12 +1596,31 @@
         else fieldLabel = input.getAttribute('aria-label') || input.name || 'Unknown';
 
         var isEmpty = false;
+        var errorMessage = 'This field is required';
+        
         if (input.type === 'file') {
           isEmpty = !fileStorage[formType];
         } else if (input.tagName === 'SELECT') {
           isEmpty = !input.value || input.value === '';
         } else {
           isEmpty = !input.value || input.value.trim() === '';
+        }
+
+        // Additional validation for specific field types
+        if (!isEmpty && input.type === 'email') {
+          var emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailPattern.test(input.value)) {
+            isValid = false;
+            input.classList.add('field-error');
+            missingFields.push(fieldLabel + ' (invalid format)');
+            errorMessage = 'Please enter a valid email address';
+            var errorSpan = document.createElement('span');
+            errorSpan.className = 'error-message';
+            errorSpan.textContent = errorMessage;
+            errorSpan.setAttribute('role','alert');
+            input.parentElement.appendChild(errorSpan);
+            isEmpty = false; // Already handled
+          }
         }
 
         if (isEmpty) {
@@ -1602,13 +1630,14 @@
           if (input.type !== 'file') {
             var errorSpan = document.createElement('span');
             errorSpan.className = 'error-message';
-            errorSpan.textContent = 'This field is required';
+            errorSpan.textContent = errorMessage;
             errorSpan.setAttribute('role','alert');
             input.parentElement.appendChild(errorSpan);
           }
         }
       });
 
+      // Show validation banner if errors exist
       var banner = document.getElementById(formType + 'ValidationBanner');
       if (!isValid && banner) {
         banner.innerHTML = '<h4 class="validation-banner-title">Please complete all required fields</h4>'
@@ -1628,14 +1657,31 @@
       if (errorMsg) errorMsg.remove();
       if (input.hasAttribute('required')) {
         var isEmpty = false;
+        var errorMessage = 'This field is required';
+        
         if (input.type === 'file') isEmpty = !input.files || input.files.length === 0;
         else if (input.tagName === 'SELECT') isEmpty = !input.value || input.value === '';
         else isEmpty = !input.value || input.value.trim() === '';
+        
+        // Email validation
+        if (!isEmpty && input.type === 'email') {
+          var emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailPattern.test(input.value)) {
+            input.classList.add('field-error');
+            errorMessage = 'Please enter a valid email address';
+            var errorSpan = document.createElement('span');
+            errorSpan.className = 'error-message';
+            errorSpan.textContent = errorMessage;
+            input.parentElement.appendChild(errorSpan);
+            return;
+          }
+        }
+        
         if (isEmpty && input.type !== 'file') {
           input.classList.add('field-error');
           var errorSpan = document.createElement('span');
           errorSpan.className = 'error-message';
-          errorSpan.textContent = 'This field is required';
+          errorSpan.textContent = errorMessage;
           input.parentElement.appendChild(errorSpan);
         }
       }
@@ -1682,7 +1728,7 @@
         province: document.getElementById('province').value,
         contactNo: document.getElementById('contactNo').value.trim(),
         datePurchased: formatDateToMMDDYYYY(document.getElementById('datePurchased').value),
-        dealerName: document.getElementById('dealerName').value.trim(),
+        // dealerName is auto-derived from dealerCode in backend
         customerAddress: document.getElementById('customerAddress').value.trim(),
         age: document.getElementById('age').value,
         gender: document.getElementById('gender').value,
@@ -1700,7 +1746,20 @@
             form.reset();
             clearFileSelection('wrc');
           } else {
-            showMessage('wrcMessage', response.message, true);
+            // Handle structured validation errors from backend
+            if (response.errorType === 'VALIDATION' && response.missingFields && response.missingFields.length > 0) {
+              var errorHtml = '<strong>Submission failed. Missing required fields:</strong><ul style="margin-top:8px;padding-left:20px;">';
+              response.missingFields.forEach(function(field) {
+                errorHtml += '<li>' + field + '</li>';
+              });
+              errorHtml += '</ul>';
+              var msgDiv = document.getElementById('wrcMessage');
+              msgDiv.innerHTML = errorHtml;
+              msgDiv.className = 'message-box message-error';
+              msgDiv.style.display = 'block';
+            } else {
+              showMessage('wrcMessage', response.message, true);
+            }
           }
         })
         .withFailureHandler(function(error) {
@@ -1710,8 +1769,42 @@
         .submitWRC(formData);
     }
 
+    /**
+     * Dealer Code to Dealer Name mapping (WRC auto-fill)
+     * This must match the backend DEALER_CODE_MAP in Code.gs
+     */
+    const DEALER_CODE_MAP = {
+      '20052': 'GIANT MOTO-BACAYAN',
+      '20053': 'GIANT MOTO-BARILI',
+      '20054': 'GIANT MOTO-CARMEN',
+      '20055': 'GIANT MOTO-CLARIN',
+      '20056': 'GIANT MOTO-CORDOVA',
+      '20051': 'GIANT MOTO-LAPULAPU',
+      '20057': 'GIANT MOTO-MINGLANILLA',
+      '20058': 'GIANT MOTO-SAN FERNANDO CEBU',
+      '20551': 'GIANT MOTO-TALISAY',
+      '20059': 'GIANT MOTO-TOLEDO',
+      '20060': 'GIANT MOTO-UBAY',
+      '20061': 'GIANT MOTO-V.RAMA'
+    };
+
+    /**
+     * Update the dealer name display when dealer code is selected (WRC form)
+     */
+    function updateDealerNameDisplay() {
+      var dealerCode = document.getElementById('wrcDealerCode').value;
+      var dealerNameDisplay = document.getElementById('wrcDealerNameDisplay');
+      
+      if (dealerCode && DEALER_CODE_MAP[dealerCode]) {
+        dealerNameDisplay.value = DEALER_CODE_MAP[dealerCode];
+      } else {
+        dealerNameDisplay.value = '';
+      }
+    }
+
     function resetWRCForm() {
       document.getElementById('wrcForm').reset();
+      document.getElementById('wrcDealerNameDisplay').value = '';
       clearFileSelection('wrc');
       document.getElementById('wrcMessage').classList.remove('visible');
     }
@@ -1754,7 +1847,7 @@
         repairedMonth: repairedDateSplit.month,
         repairedDay: repairedDateSplit.day,
         repairedYear: repairedDateSplit.year,
-        kscCode: document.getElementById('kscCode').value.trim(),
+        // kscCode removed - no longer required
         branch: document.getElementById('fscBranch').value,
         email: document.getElementById('fscEmail').value.trim(),
         fileUrl: fileUrl
@@ -1768,7 +1861,20 @@
             form.reset();
             clearFileSelection('fsc');
           } else {
-            showMessage('fscMessage', response.message, true);
+            // Handle structured validation errors from backend
+            if (response.errorType === 'VALIDATION' && response.missingFields && response.missingFields.length > 0) {
+              var errorHtml = '<strong>Submission failed. Missing required fields:</strong><ul style="margin-top:8px;padding-left:20px;">';
+              response.missingFields.forEach(function(field) {
+                errorHtml += '<li>' + field + '</li>';
+              });
+              errorHtml += '</ul>';
+              var msgDiv = document.getElementById('fscMessage');
+              msgDiv.innerHTML = errorHtml;
+              msgDiv.className = 'message-box message-error';
+              msgDiv.style.display = 'block';
+            } else {
+              showMessage('fscMessage', response.message, true);
+            }
           }
         })
         .withFailureHandler(function(error) {
@@ -1832,7 +1938,20 @@
             form.reset();
             clearFileSelection('wlp');
           } else {
-            showMessage('wlpMessage', response.message, true);
+            // Handle structured validation errors from backend
+            if (response.errorType === 'VALIDATION' && response.missingFields && response.missingFields.length > 0) {
+              var errorHtml = '<strong>Submission failed. Missing required fields:</strong><ul style="margin-top:8px;padding-left:20px;">';
+              response.missingFields.forEach(function(field) {
+                errorHtml += '<li>' + field + '</li>';
+              });
+              errorHtml += '</ul>';
+              var msgDiv = document.getElementById('wlpMessage');
+              msgDiv.innerHTML = errorHtml;
+              msgDiv.className = 'message-box message-error';
+              msgDiv.style.display = 'block';
+            } else {
+              showMessage('wlpMessage', response.message, true);
+            }
           }
         })
         .withFailureHandler(function(error) {
@@ -1892,12 +2011,22 @@
       // Collect affected parts
       var affectedParts = [];
       document.querySelectorAll('#affectedPartsBody tr').forEach(function(row) {
-        var inputs = row.querySelectorAll('input');
-        if (inputs.length >= 3 && (inputs[0].value.trim() || inputs[1].value.trim())) {
+        var partNo = row.querySelector('.part-no');
+        var partName = row.querySelector('.part-name');
+        var partQty = row.querySelector('.part-qty');
+        
+        if (partNo && partName && (partNo.value.trim() || partName.value.trim())) {
+          // Collect checked supply methods for this part
+          var supplyMethods = [];
+          row.querySelectorAll('input[type="checkbox"]:checked').forEach(function(cb) {
+            supplyMethods.push(cb.value);
+          });
+          
           affectedParts.push({
-            partNo: inputs[0].value.trim(),
-            partName: inputs[1].value.trim(),
-            qty: inputs[2].value.trim()
+            partNo: partNo.value.trim(),
+            partName: partName.value.trim(),
+            qty: partQty ? partQty.value.trim() : '',
+            supplyMethod: supplyMethods.join(', ')
           });
         }
       });
@@ -1935,11 +2064,11 @@
         affectedParts: JSON.stringify(affectedParts),
         unitsSameProblem: document.getElementById('wcfUnitsSameProblem').value.trim(),
         deliverTo: document.getElementById('wcfDeliverTo').value.trim(),
-        preparedByName: document.getElementById('wcfPreparedByName').value.trim(),
+        preparedByName: document.getElementById('wcfPreparedByName') ? document.getElementById('wcfPreparedByName').value.trim() : '',
         preparedBySignature: getSignatureData('wcfPreparedBySignature'),
-        acknowledgedByName: document.getElementById('wcfAcknowledgedByName').value.trim(),
+        acknowledgedByName: document.getElementById('wcfAcknowledgedByName') ? document.getElementById('wcfAcknowledgedByName').value.trim() : '',
         acknowledgedBySignature: getSignatureData('wcfAcknowledgedBySignature'),
-        warrantyRepairName: document.getElementById('wcfWarrantyRepairName').value.trim(),
+        warrantyRepairName: document.getElementById('wcfWarrantyRepairName') ? document.getElementById('wcfWarrantyRepairName').value.trim() : '',
         warrantyRepairSignature: getSignatureData('wcfWarrantyRepairSignature'),
         illustrationUrl: illustrationUrl,
         email: document.getElementById('wcfEmail').value.trim(),
@@ -1986,7 +2115,20 @@
             clearSignature('wcfWarrantyRepairSignature');
             document.getElementById('wcfMcUsageOther').style.display = 'none';
           } else {
-            showMessage('wcfMessage', response.message, true);
+            // Handle structured validation errors from backend
+            if (response.errorType === 'VALIDATION' && response.missingFields && response.missingFields.length > 0) {
+              var errorHtml = '<strong>Submission failed. Missing required fields:</strong><ul style="margin-top:8px;padding-left:20px;">';
+              response.missingFields.forEach(function(field) {
+                errorHtml += '<li>' + field + '</li>';
+              });
+              errorHtml += '</ul>';
+              var msgDiv = document.getElementById('wcfMessage');
+              msgDiv.innerHTML = errorHtml;
+              msgDiv.className = 'message-box message-error';
+              msgDiv.style.display = 'block';
+            } else {
+              showMessage('wcfMessage', response.message, true);
+            }
           }
         })
         .withFailureHandler(function(error) {
@@ -2034,9 +2176,15 @@
     function addAffectedPartRow() {
       var tbody = document.getElementById('affectedPartsBody');
       var tr = document.createElement('tr');
-      tr.innerHTML = '<td><input type="text" placeholder="Part No."></td>'
-        + '<td><input type="text" placeholder="Part Name"></td>'
-        + '<td><input type="number" min="0" placeholder="0"></td>'
+      tr.innerHTML = '<td><input type="text" class="part-no" placeholder="Part No."></td>'
+        + '<td><input type="text" class="part-name" placeholder="Part Name"></td>'
+        + '<td><input type="number" class="part-qty" min="0" placeholder="0"></td>'
+        + '<td><div class="checkbox-group" style="display:flex;flex-wrap:wrap;gap:4px;font-size:0.75rem;">'
+        + '<label class="checkbox-label" style="margin:0;white-space:nowrap;"><input type="checkbox" class="supply-kmpc" value="KMPC H.O."> KMPC H.O.</label>'
+        + '<label class="checkbox-label" style="margin:0;white-space:nowrap;"><input type="checkbox" class="supply-ksc" value="KSC"> KSC</label>'
+        + '<label class="checkbox-label" style="margin:0;white-space:nowrap;"><input type="checkbox" class="supply-dealer" value="SP Dealer"> SP Dealer</label>'
+        + '<label class="checkbox-label" style="margin:0;white-space:nowrap;"><input type="checkbox" class="supply-stock" value="Use Stock"> Warranty Stock</label>'
+        + '</div></td>'
         + '<td><button type="button" class="btn-remove-row" onclick="removeAffectedPartRow(this)" title="Remove row">&times;</button></td>';
       tbody.appendChild(tr);
     }
