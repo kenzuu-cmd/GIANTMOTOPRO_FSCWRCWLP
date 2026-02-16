@@ -1,757 +1,611 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<style>
-/* ================================================================
-   WCF PRINT TEMPLATE – Legal Paper (8.5 × 14 in), Portrait
-   EXACT MATCH to Kawasaki Warranty Claim Form Template
-   ================================================================ */
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WCF Print Template</title>
+  <style>
+    @page {
+      size: 8in 13in;
+      margin: 0.5in;
+    }
 
-@page {
-  size: 8.5in 13in;
-  margin: 0.2in;
-}
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
+    html,
+    body {
+      width: 100%;
+      background: #fff;
+      color: #000;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 9px;
+      line-height: 1.15;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 8pt;
-  color: #000;
-  width: 8.1in;
-  margin: 0 auto;
-  line-height: 1.12;
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
-}
+    .sheet {
+      width: 7in;
+      min-height: 12in;
+      margin: 0 auto;
+      overflow: hidden;
+    }
 
-/* ── Global table styles ─────────────────────────────────── */
-table {
-  border-collapse: collapse;
-  width: 100%;
-}
-td, th {
-  border: 1px solid #000;
-  padding: 1pt 3pt;
-  vertical-align: middle;
-  font-size: 7.5pt;
-}
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      border-spacing: 0;
+      table-layout: fixed;
+    }
 
-/* ── Header section (no borders) ────────────────────────── */
-.header-table { margin-bottom: 0; table-layout: fixed; }
-.header-table td { border: none; padding: 1pt 2pt; }
+    td,
+    th {
+      border: 1px solid #000;
+      padding: 2px 3px;
+      vertical-align: middle;
+      word-wrap: break-word;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
 
-.logo-cell {
-  width: 100%;
-  vertical-align: top;
-  text-align: left;
-}
-.logo-cell img {
-  max-width: 2.8in;
-  max-height: 1.0in;
-  object-fit: contain;
-}
+    .no-border {
+      border: none !important;
+    }
 
-.company-name {
-  font-size: 8.1pt;
-  font-weight: bold;
-  line-height: 1.15;
-  margin-top: 1pt;
-}
+    .p0 {
+      padding: 0 !important;
+    }
 
-.company-info-cell {
-  vertical-align: top;
-  text-align: left;
-  padding-left: 0;
-}
-.company-address {
-  font-size: 7pt;
-  line-height: 1.18;
-  margin-top: 0;
-}
+    .center {
+      text-align: center;
+    }
 
-.contact-cell {
-  width: 2.6in;
-  vertical-align: top;
-  text-align: right;
-  font-size: 7pt;
-  line-height: 1.2;
-  padding-left: 0;
-  padding-right: 0;
-}
-.contact-label {
-  font-weight: bold;
-}
+    .right {
+      text-align: right;
+    }
 
-/* ── Title block ────────────────────────────────────────── */
-.title-row {
-  background: #ffffff;
-  font-weight: bold;
-}
-.title-main {
-  font-size: 9.4pt;
-  font-weight: bold;
-  text-align: center;
-  padding: 2pt;
-}
-.title-sub {
-  font-size: 8.2pt;
-  text-align: center;
-  padding: 0;
-}
-.date-job-cell {
-  width: 2.5in;
-  vertical-align: top;
-  padding: 0;
-}
-.date-job-row {
-  height: 18pt;
-}
-.date-job-label {
-  font-size: 7.5pt;
-  font-weight: bold;
-  padding: 1pt 4pt;
-  width: 1.1in;
-  border-right: 1px solid #000;
-}
-.date-job-value {
-  font-size: 7.5pt;
-  padding: 1pt 4pt;
-}
+    .top {
+      vertical-align: top;
+    }
 
-/* ── Field labels and values ────────────────────────────── */
-.field-label {
-  font-size: 7.3pt;
-  font-weight: bold;
-  background: #f5f5f5;
-  width: 1.2in;
-  padding: 1pt 3pt;
-  white-space: nowrap;
-}
-.field-value {
-  font-size: 7.5pt;
-  padding: 1pt 4pt;
-  min-height: 13pt;
-}
-.field-value-bold {
-  font-weight: bold;
-  letter-spacing: 0.3pt;
-}
+    .bold {
+      font-weight: bold;
+    }
 
-/* ── Section headers ────────────────────────────────────── */
-.section-header {
-  font-weight: bold;
-  font-size: 7.3pt;
-  background: #e8e8e8;
-  padding: 2pt 4pt;
-  text-align: left;
-}
+    .tiny {
+      font-size: 7px;
+    }
 
-/* ── Narrative boxes ────────────────────────────────────── */
-.narrative-label {
-  font-weight: bold;
-  font-size: 7.2pt;
-  background: #f5f5f5;
-  padding: 2pt 4pt;
-  border-bottom: 1px solid #000;
-}
-.narrative-content {
-  font-size: 7.4pt;
-  padding: 2pt 4pt;
-  min-height: 0.34in;
-  vertical-align: top;
-  white-space: pre-wrap;
-  line-height: 1.2;
-}
+    .small {
+      font-size: 8px;
+    }
 
-/* ── Parts table ─────────────────────────────────────────── */
-.parts-table {
-  font-size: 7.5pt;
-}
-.parts-header {
-  font-weight: bold;
-  font-size: 7pt;
-  background: #e8e8e8;
-  text-align: center;
-  padding: 2pt 2pt;
-}
-.parts-header-left {
-  font-weight: bold;
-  font-size: 7pt;
-  background: #e8e8e8;
-  text-align: left;
-  padding: 2pt 4pt;
-}
-.parts-cell {
-  font-size: 7pt;
-  padding: 1pt 3pt;
-  height: 14pt;
-  text-align: center;
-}
-.parts-cell-left {
-  font-size: 7pt;
-  padding: 1pt 4pt;
-  height: 14pt;
-  text-align: left;
-}
+    .title {
+      font-size: 23px;
+      font-weight: bold;
+      letter-spacing: 0.15px;
+    }
 
-/* ── Vertical text in narrow columns ────────────────────── */
-.vertical-text {
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
-  font-size: 5pt;
-  font-weight: bold;
-  text-align: center;
-  padding: 3pt 1pt;
-  white-space: nowrap;
-  line-height: 1;
-  letter-spacing: 0.2pt;
-  width: 0.22in;
-}
+    .subtitle {
+      font-size: 10px;
+      font-weight: bold;
+    }
 
-/* ── Illustration box ────────────────────────────────────── */
-.illustration-header {
-  font-size: 6pt;
-  font-weight: normal;
-  text-align: center;
-  background: #e8e8e8;
-  padding: 2pt 3pt;
-  line-height: 1.2;
-}
-.illustration-content {
-  text-align: center;
-  vertical-align: middle;
-  padding: 2pt;
-  height: 2.45in;
-}
-.illustration-content img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-.illustration-placeholder {
-  color: #999;
-  font-size: 7pt;
-  padding-top: 1.2in;
-}
+    .box-label {
+      font-weight: bold;
+      white-space: nowrap;
+    }
 
-/* ── Checkbox styling ────────────────────────────────────── */
-.cb {
-  display: inline-block;
-  width: 9pt;
-  height: 9pt;
-  border: 1pt solid #000;
-  text-align: center;
-  line-height: 9pt;
-  font-size: 7pt;
-  font-weight: bold;
-  vertical-align: middle;
-  margin-right: 2pt;
-}
-.cb-label {
-  font-size: 7.2pt;
-  vertical-align: middle;
-}
+    .checkbox {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border: 1px solid #000;
+      margin-right: 4px;
+      vertical-align: -1px;
+      line-height: 8px;
+      text-align: center;
+      font-size: 7px;
+      overflow: hidden;
+    }
 
-/* ── FOR KSN/KMPC USE ONLY bands ────────────────────────── */
-.use-only-band {
-  font-weight: bold;
-  font-size: 8pt;
-  text-align: center;
-  background: #d8d8d8;
-  padding: 3pt;
-}
+    .vertical {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      text-align: center;
+      white-space: nowrap;
+      font-size: 7px;
+      font-weight: bold;
+      padding: 3px 1px;
+      line-height: 1;
+    }
 
-/* ── Signature blocks ────────────────────────────────────── */
-.sig-header {
-  font-weight: bold;
-  font-size: 7pt;
-  text-align: center;
-  background: #f5f5f5;
-  padding: 2pt;
-}
-.sig-name {
-  font-size: 7.5pt;
-  text-align: center;
-  padding: 2pt 3pt;
-  height: 13pt;
-  font-weight: bold;
-}
-.sig-image {
-  text-align: center;
-  vertical-align: middle;
-  height: 0.38in;
-  padding: 1pt;
-}
-.sig-image img {
-  max-width: 1.55in;
-  max-height: 0.34in;
-  object-fit: contain;
-}
-.sig-footer {
-  font-size: 6.6pt;
-  text-align: center;
-  padding: 1pt;
-  background: #fafafa;
-}
+    .logo-box {
+      height: 40px;
+      min-height: 40px;
+      display: block;
+      padding: 4px;
+      overflow: visible;
+    }
 
-/* ── Claim judgment section ──────────────────────────────── */
-.judgment-title {
-  font-weight: bold;
-  font-size: 7.5pt;
-  background: #e8e8e8;
-  text-align: center;
-  padding: 2pt;
-}
-.judgment-content {
-  font-size: 7pt;
-  padding: 2pt 4pt;
-}
+    .logo-box img {
+      display: block;
+      border: 0;
+      outline: 0;
+      max-height: 32px;
+      max-width: 140px;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+    }
+    
+    .debug-border {
+      outline: 2px dashed #f00 !important;
+    }
+    
+    .debug-text {
+      font-size: 6px;
+      color: #333;
+      background: #fff;
+      padding: 1px 2px;
+      margin-top: 2px;
+      font-family: monospace;
+      word-break: break-all;
+    }
 
-/* ── Utilities ───────────────────────────────────────────── */
-.no-border { border: none !important; }
-.text-center { text-align: center; }
-.text-bold { font-weight: bold; }
-.bg-gray { background: #f5f5f5; }
-.no-page-break { page-break-inside: avoid; break-inside: avoid; }
-</style>
+    .attach-placeholder {
+      display: block;
+      width: 100%;
+      height: 100%;
+      text-align: center;
+      padding: 4px;
+      overflow: hidden;
+      position: relative;
+      background: #fff;
+      box-sizing: border-box;
+    }
 
-<script>
-  // Helper functions for rendering checkboxes
-  function mcUsageChecked(type) {
-    var usage = '<?= data.mcUsage || "" ?>';
-    return (usage === type) ? '✓' : '';
-  }
-  
-  function claimChecked(status) {
-    var judgment = '<?= data.claimJudgment || "" ?>';
-    return (judgment === status) ? '✓' : '';
-  }
-  
-  function rejectReasonChecked(num) {
-    var reasons = '<?= data.rejectReasons || "" ?>';
-    if (!reasons) return '';
-    var arr = reasons.split(',').map(function(r) { return r.trim(); });
-    return (arr.indexOf(String(num)) > -1) ? '✓' : '';
-  }
-  
-  function formatDate(dateStr) {
-    if (!dateStr) return '';
-    // Format as MM/DD/YYYY
-    var d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
-    var mm = ('0' + (d.getMonth() + 1)).slice(-2);
-    var dd = ('0' + d.getDate()).slice(-2);
-    var yyyy = d.getFullYear();
-    return mm + '/' + dd + '/' + yyyy;
-  }
-</script>
+    .attach-placeholder img {
+      display: block;
+      border: 0;
+      outline: 0;
+      width: 100%;
+      height: 100%;
+      margin: 0 auto;
+      object-fit: contain;
+      object-position: center;
+    }
+
+    .signature-box {
+      min-height: 40px;
+      height: 40px;
+      display: block;
+      text-align: center;
+      overflow: visible;
+      padding: 3px;
+    }
+
+    .signature-box img {
+      display: block;
+      border: 0;
+      outline: 0;
+      max-width: 100%;
+      max-height: 34px;
+      width: auto;
+      height: auto;
+      margin: 0 auto;
+      object-fit: contain;
+    }
+
+    .signature-line {
+      display: block;
+      margin-top: 4px;
+      border-top: 1px solid #000;
+      padding-top: 2px;
+      text-align: center;
+      font-size: 7px;
+    }
+
+    .h14 { height: 14px; }
+    .h16 { height: 16px; }
+    .h18 { height: 18px; }
+    .h20 { height: 20px; }
+    .h22 { height: 22px; }
+    .h24 { height: 24px; }
+    .h26 { height: 26px; }
+    .h30 { height: 30px; min-height: 30px; }
+    .h32 { height: 32px; }
+    .h40 { height: 40px; }
+    .h44 { height: 44px; min-height: 44px; }
+    .h58 { height: 58px; min-height: 58px; }
+
+    .nowrap { white-space: nowrap; }
+
+    .header-outer {
+      width: 100%;
+      border: 1px solid #000;
+    }
+
+    .header-wrap {
+      padding: 0;
+      border: none;
+    }
+
+    .inner-noborder {
+      border: none;
+    }
+  </style>
 </head>
 <body>
+  <div class="sheet">
+    <!-- Header Container (matches template) -->
+    <table class="header-outer">
+      <tr>
+        <td class="header-wrap p0">
+          <table style="border: none;">
+            <colgroup>
+              <col style="width: 66%;">
+              <col style="width: 34%;">
+            </colgroup>
+            <!-- Header top: Logo + Company info (left) | Contact info (right) -->
+            <tr style="height: 85px; min-height: 85px;">
+              <td class="inner-noborder p0" style="vertical-align: top; padding: 4px;">
+                <? 
+                  // Use data.logoDataUri (new pattern) OR fallback to logoBase64 (legacy)
+                  var logoSrc = data.logoDataUri || logoBase64 || '';
+                ?>
+                <div class="logo-box <?= debug ? 'debug-border' : '' ?>">
+                  <? if (logoSrc && typeof logoSrc === 'string' && logoSrc.indexOf('data:image') === 0) { ?>
+                    <img id="wcfLogo" src="<?!= logoSrc ?>" alt="">
+                  <? } ?>
+                </div>
+                <? if (debug) { ?>
+                  <div class="debug-text">
+                    [LOGO] len=<?= (logoSrc || '').length ?> | <?= (logoSrc || '').substring(0, 40) ?>...
+                  </div>
+                <? } else if (!logoSrc || logoSrc.indexOf('data:image') !== 0) { ?>
+                  <!-- Logo missing or invalid -->
+                <? } ?>
+                <div class="tiny" style="padding: 2px 4px; margin-top: 2px;">
+                  <div class="bold">Kawasaki Motors (Phils.) Corporation</div>
+                  <div>Km. 24 East Service Rd., Cupang, Muntinlupa City</div>
+                  <div>Email Address: KawasaWarranty@kmpc.com.ph</div>
+                </div>
+              </td>
+              <td class="inner-noborder right top tiny" style="padding: 2px 4px;">
+                <div>KMPC Trunkline: 8842-3140 to 43</div>
+                <div>Visayas&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Local 5290</div>
+                <div>Maintenance&nbsp;&nbsp;Loc. 5291</div>
+              </td>
+            </tr>
+            <!-- Title band: Title (left) | Date/Job boxes (right) -->
+            <tr>
+              <td class="inner-noborder" style="padding: 4px; vertical-align: bottom;">
+                <div class="bold" style="font-size: 16px; line-height: 1.2;">TECHNICAL SERVICE &amp; WARRANTY</div>
+                <div class="bold" style="font-size: 9px;">(Warranty Claim Form)</div>
+              </td>
+              <td class="inner-noborder p0" style="vertical-align: bottom;">
+                <table style="border: none;">
+                  <tr style="height: 20px;">
+                    <td class="box-label" style="border: 1px solid #000; padding: 2px 4px; width: 50%;">Prepared date:</td>
+                    <td style="border: 1px solid #000; padding: 2px 4px;"><?= data.preparedDate || '' ?></td>
+                  </tr>
+                  <tr style="height: 20px;">
+                    <td class="box-label" style="border: 1px solid #000; padding: 2px 4px;">Job Order No.:</td>
+                    <td style="border: 1px solid #000; padding: 2px 4px;"><?= data.jobOrderNo || '' ?></td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
 
-<!-- ════════════════════════════════════════════════════════════
-     HEADER: Logo + Company Info + Contact Details
-     ════════════════════════════════════════════════════════════ -->
-<table class="header-table">
-  <tr>
-    <td class="logo-cell" colspan="2">
-      <? if (logoBase64) { ?>
-        <img src="<?!= logoBase64 ?>" alt="Kawasaki Logo" />
-      <? } else { ?>
-        <img src="https://drive.google.com/uc?export=view&id=1bJLyGs9zRsEvpzbPdiGBOl2Jv19pkUEd" alt="Kawasaki Logo" />
-      <? } ?>
-    </td>
-  </tr>
-  <tr>
-    <td class="company-info-cell">
-      <div class="company-name">Kawasaki Motors (Phils.) Corporation</div>
-      <div class="company-address">
-        Km. 24 East Service Rd., Cupang, Muntinlupa City<br>
-        <strong>Email Address:</strong> Kawasaki.Warranty@kmpc.com.ph
-      </div>
-    </td>
-    <td class="contact-cell">
-      <div><span class="contact-label">KMPC Trunkline:</span> 8842-31-40 to 43:</div>
-      <div><span class="contact-label">Vizcaya:</span> Local 5290</div>
-      <div><span class="contact-label">Mindoro:</span> Local 5291</div>
-    </td>
-  </tr>
-</table>
+    <table>
+      <colgroup>
+        <col style="width: 18%;">
+        <col style="width: 32%;">
+        <col style="width: 18%;">
+        <col style="width: 32%;">
+      </colgroup>
+      <tr class="h18">
+        <td class="box-label">Dealer's Name</td>
+        <td><?= data.dealerName || '' ?></td>
+        <td class="box-label">Phone number</td>
+        <td><?= data.dealerPhone || '' ?></td>
+      </tr>
+      <tr class="h18">
+        <td class="box-label">Dealer's Address</td>
+        <td><?= data.dealerAddress || '' ?></td>
+        <td class="box-label"></td>
+        <td></td>
+      </tr>
+      <tr class="h18">
+        <td class="box-label">Customer's Name</td>
+        <td><?= data.customerName || '' ?></td>
+        <td class="box-label">Phone number</td>
+        <td><?= data.customerPhone || '' ?></td>
+      </tr>
+      <tr class="h18">
+        <td class="box-label">Customer's Address</td>
+        <td><?= data.customerAddress || '' ?></td>
+        <td class="box-label"></td>
+        <td></td>
+      </tr>
+      <tr class="h18">
+        <td class="box-label">Model / Color</td>
+        <td><?= (data.model || '') + (data.color ? ' / ' + data.color : '') ?></td>
+        <td class="box-label">WRC No.</td>
+        <td><?= data.wrcNo || '' ?></td>
+      </tr>
+      <tr class="h18">
+        <td class="box-label">Frame No.</td>
+        <td><?= data.frameNo || '' ?></td>
+        <td class="box-label">Purchase Date</td>
+        <td><?= data.purchaseDate || '' ?></td>
+      </tr>
+      <tr class="h18">
+        <td class="box-label">Engine No.</td>
+        <td><?= data.engineNo || '' ?></td>
+        <td class="box-label">Failure Date</td>
+        <td><?= data.failureDate || '' ?></td>
+      </tr>
+      <tr class="h18">
+        <td class="box-label">MC Usage</td>
+        <td>
+          <span class="checkbox"><?= mcUsageChecked('SOLO') ?></span>SOLO
+          &nbsp;
+          <span class="checkbox"><?= mcUsageChecked('TRICYCLE') ?></span>Tricycle
+          &nbsp;
+          <span class="checkbox"><?= mcUsageChecked('OTHERS') ?></span>Others<?= (data.mcUsageOther ? ': ' + data.mcUsageOther : '') ?>
+        </td>
+        <td class="box-label">Reported Date</td>
+        <td><?= data.reportedDate || '' ?></td>
+      </tr>
+      <tr class="h18">
+        <td class="box-label">Kilometer Run</td>
+        <td><?= data.kilometerRun || '' ?></td>
+        <td class="box-label">Repair Date</td>
+        <td><?= data.repairDate || '' ?></td>
+      </tr>
+    </table>
 
-<!-- ════════════════════════════════════════════════════════════
-     TITLE BLOCK
-     ════════════════════════════════════════════════════════════ -->
-<table style="margin-top: 0;">
-  <tr class="title-row">
-    <td colspan="2" class="title-main">
-      TECHNICAL SERVICE & WARRANTY<br>
-      <span class="title-sub">(Warranty Claim Form)</span>
-    </td>
-    <td class="date-job-cell">
-      <table style="width: 100%; height: 100%; border-collapse: collapse; margin: 0;">
-        <tr class="date-job-row">
-          <td class="date-job-label">Prepared date:</td>
-          <td class="date-job-value"><?= formatDate(data.preparedDate) ?></td>
-        </tr>
-        <tr class="date-job-row">
-          <td class="date-job-label">Job Order No.:</td>
-          <td class="date-job-value"><?= data.jobOrderNo || '' ?></td>
-        </tr>
-      </table>
-    </td>
-  </tr>
-</table>
+    <table>
+      <tr class="h18"><td class="box-label">(A) PROBLEM / COMPLAINT REPORTED BY CUSTOMER:</td></tr>
+      <tr class="h30"><td class="top"><?= data.problemComplaint || '' ?></td></tr>
+      <tr class="h18"><td class="box-label">(B) PROBABLE CAUSE OF THE PROBLEM EVALUATED BY KSN:</td></tr>
+      <tr class="h30"><td class="top"><?= data.probableCause || '' ?></td></tr>
+      <tr class="h18"><td class="box-label">(C) CORRECTIVE ACTION FROM KSN:</td></tr>
+      <tr class="h30"><td class="top"><?= data.correctiveAction || '' ?></td></tr>
+      <tr class="h18"><td class="box-label">(D) SUGGESTION FOR IMPROVEMENT / REMARKS BY KSN:</td></tr>
+      <tr class="h30"><td class="top"><?= data.suggestionRemarks || '' ?></td></tr>
+      <tr class="h18"><td class="box-label">(E) PARTS RECOMMENDED FOR REPLACEMENT:</td></tr>
+    </table>
 
-<!-- ════════════════════════════════════════════════════════════
-     SECTION 1: Dealer / Customer / Unit Information
-     ════════════════════════════════════════════════════════════ -->
-<table style="margin-top: 0;">
-  <!-- Row 1: Dealer's Name + Phone number -->
-  <tr>
-    <td class="field-label">Dealer's Name</td>
-    <td class="field-value" colspan="3"><?= data.dealerName || '' ?></td>
-    <td class="field-label">Phone number</td>
-    <td class="field-value"><?= data.dealerPhone || '' ?></td>
-  </tr>
-  <!-- Row 2: Dealer's Address + blank -->
-  <tr>
-    <td class="field-label">Dealer's Address</td>
-    <td class="field-value" colspan="5"><?= data.dealerAddress || '' ?></td>
-  </tr>
-  <!-- Row 3: Customer's Name + Phone number -->
-  <tr>
-    <td class="field-label">Customer's Name</td>
-    <td class="field-value" colspan="3"><?= data.customerName || '' ?></td>
-    <td class="field-label">Phone number</td>
-    <td class="field-value"><?= data.customerPhone || '' ?></td>
-  </tr>
-  <!-- Row 4: Customer's Address + blank -->
-  <tr>
-    <td class="field-label">Customer's Address</td>
-    <td class="field-value" colspan="5"><?= data.customerAddress || '' ?></td>
-  </tr>
-  <!-- Row 5: Model / Color + WRC No. -->
-  <tr>
-    <td class="field-label">Model / Color</td>
-    <td class="field-value" style="width:1.6in;"><?= (data.model || '') + (data.color ? ' / ' + data.color : '') ?></td>
-    <td class="field-label" style="width:1.1in;">WRC No.</td>
-    <td class="field-value field-value-bold" colspan="3"><?= data.wrcNo || '' ?></td>
-  </tr>
-  <!-- Row 6: Frame No. + Purchase Date -->
-  <tr>
-    <td class="field-label">Frame No.</td>
-    <td class="field-value field-value-bold" style="width:1.6in;"><?= data.frameNo || '' ?></td>
-    <td class="field-label" style="width:1.1in;">Purchase Date</td>
-    <td class="field-value" colspan="3"><?= formatDate(data.purchaseDate) ?></td>
-  </tr>
-  <!-- Row 7: Engine No. + Failure Date -->
-  <tr>
-    <td class="field-label">Engine No.</td>
-    <td class="field-value field-value-bold" style="width:1.6in;"><?= data.engineNo || '' ?></td>
-    <td class="field-label" style="width:1.1in;">Failure Date</td>
-    <td class="field-value" colspan="3"><?= formatDate(data.failureDate) ?></td>
-  </tr>
-  <!-- Row 8: MC Usage + Reported Date -->
-  <tr>
-    <td class="field-label">MC Usage</td>
-    <td class="field-value" style="padding: 3pt 8pt; width:1.6in;">
-        <span style="white-space: nowrap; display: inline-block;">
-          <span class="cb"><?= mcUsageChecked('SOLO') ?></span><span class="cb-label">SOLO</span>
-          &nbsp;&nbsp;
-          <span class="cb"><?= mcUsageChecked('TRICYCLE') ?></span><span class="cb-label">Tricycle</span>
-          &nbsp;&nbsp;
-          <span class="cb"><?= mcUsageChecked('OTHERS') ?></span><span class="cb-label">Others</span>
-        </span>
-    </td>
-    <td class="field-label" style="width:1.1in;">Reported Date</td>
-    <td class="field-value" colspan="3"><?= formatDate(data.reportedDate) ?></td>
-  </tr>
-  <!-- Row 9: Kilometer Run + Repair Date -->
-  <tr>
-    <td class="field-label">Kilometer Run</td>
-    <td class="field-value" style="width:1.6in;"><?= data.kilometerRun || '' ?></td>
-    <td class="field-label" style="width:1.1in;">Repair Date</td>
-    <td class="field-value" colspan="3"><?= formatDate(data.repairDate) ?></td>
-  </tr>
-</table>
-
-<!-- ════════════════════════════════════════════════════════════
-     SECTION 2: Narrative Boxes (A) – (D)
-     ════════════════════════════════════════════════════════════ -->
-
-<!-- (A) PROBLEM / COMPLAINT REPORTED BY CUSTOMER -->
-<table style="margin-top: 2pt;" class="no-page-break">
-  <tr>
-    <td class="narrative-label">(A) PROBLEM / COMPLAINT REPORTED BY CUSTOMER:</td>
-  </tr>
-  <tr>
-    <td class="narrative-content"><?= data.problemComplaint || '' ?></td>
-  </tr>
-</table>
-
-<!-- (B) PROBABLE CAUSE OF THE PROBLEM EVALUATED BY KSN -->
-<table style="margin-top: 1pt;" class="no-page-break">
-  <tr>
-    <td class="narrative-label">(B) PROBABLE CAUSE OF THE PROBLEM EVALUATED BY KSN:</td>
-  </tr>
-  <tr>
-    <td class="narrative-content"><?= data.probableCause || '' ?></td>
-  </tr>
-</table>
-
-<!-- (C) CORRECTIVE ACTION FROM KSN -->
-<table style="margin-top: 1pt;" class="no-page-break">
-  <tr>
-    <td class="narrative-label">(C) CORRECTIVE ACTION FROM KSN:</td>
-  </tr>
-  <tr>
-    <td class="narrative-content"><?= data.correctiveAction || '' ?></td>
-  </tr>
-</table>
-
-<!-- (D) SUGGESTION FOR IMPROVEMENT / REMARKS BY KSN -->
-<table style="margin-top: 1pt;" class="no-page-break">
-  <tr>
-    <td class="narrative-label">(D) SUGGESTION FOR IMPROVEMENT / REMARKS BY KSN:</td>
-  </tr>
-  <tr>
-    <td class="narrative-content"><?= data.suggestionRemarks || '' ?></td>
-  </tr>
-</table>
-
-<!-- ════════════════════════════════════════════════════════════
-     SECTION 3: (E) Parts Recommended + Illustration Box
-     ════════════════════════════════════════════════════════════ -->
-<table style="margin-top: 1pt;" class="no-page-break">
-  <tr>
-    <td style="width: 58%; vertical-align: top; padding: 0; border: none;">
-      
-      <!-- Parts Table (Left Side) -->
-      <table class="parts-table" style="width: 100%;">
-        <tr>
-          <td class="section-header" colspan="9">(E) PARTS RECOMMENDED FOR REPLACEMENT:</td>
-        </tr>
-        <!-- Sub-header: CAUSAL PART / MAIN DEFECTIVE PART -->
-        <tr>
-          <td class="parts-header-left" colspan="9" style="font-size: 7pt;">CAUSAL PART / MAIN DEFECTIVE PART</td>
-        </tr>
-        <!-- Parts table headers with vertical text -->
-        <tr>
-          <td class="parts-header" style="width: 1.05in;">PART NO</td>
-          <td class="parts-header" style="width: 1.5in;">PART NAME</td>
-          <td class="parts-header" style="width: 0.35in;">QTY</td>
-          <td class="parts-header vertical-text">Part to be sent by KMPC H.O.</td>
-          <td class="parts-header vertical-text">Photo needed</td>
-          <td class="parts-header vertical-text">Buy parts from SP Dealer</td>
-          <td class="parts-header vertical-text">Use stock for warranty</td>
-          <td class="parts-header vertical-text">Part to be served by KSC</td>
-          <td class="parts-header" style="width: 0.3in; font-size: 6pt;"></td>
-        </tr>
-        <!-- Causal Part Data Row -->
-        <?
-          var causalPartNoVal = (data.causalPartNo === 0) ? '0' : (data.causalPartNo || '');
-          if (causalPartNoVal === '') causalPartNoVal = (data.causalPartNO === 0) ? '0' : (data.causalPartNO || '');
-          if (causalPartNoVal === '') causalPartNoVal = (data['Causal Part No'] === 0) ? '0' : (data['Causal Part No'] || '');
-
-          var causalPartNameVal = (data.causalPartName === 0) ? '0' : (data.causalPartName || '');
-          if (causalPartNameVal === '') causalPartNameVal = (data.causalPartNAME === 0) ? '0' : (data.causalPartNAME || '');
-          if (causalPartNameVal === '') causalPartNameVal = (data['Causal Part Name'] === 0) ? '0' : (data['Causal Part Name'] || '');
-
-          var causalPartQtyVal = (data.causalPartQty === 0) ? '0' : (data.causalPartQty || '');
-          if (causalPartQtyVal === '') causalPartQtyVal = (data.causalPartQTY === 0) ? '0' : (data.causalPartQTY || '');
-          if (causalPartQtyVal === '') causalPartQtyVal = (data['Causal Part Qty'] === 0) ? '0' : (data['Causal Part Qty'] || '');
-
-          // Parse part supply method checkboxes
-          // Form values: "KMPC H.O.", "KSC", "SP Dealer", "Use Stock"
-          var partSupply = String(data.partSupplyMethod || '').toUpperCase();
-          var checkKMPC = partSupply.indexOf('KMPC') >= 0 ? '✓' : '';           // Col 4: Part to be sent by KMPC H.O.
-          var checkPhoto = '';                                                  // Col 5: Photo needed (not in form)
-          var checkSPDealer = partSupply.indexOf('SP DEALER') >= 0 ? '✓' : ''; // Col 6: Buy parts from SP Dealer
-          var checkStock = partSupply.indexOf('USE STOCK') >= 0 ? '✓' : '';    // Col 7: Use stock for warranty
-          var checkKSC = partSupply.indexOf('KSC') >= 0 ? '✓' : '';            // Col 8: Part to be served by KSC
-        ?>
-        <tr>
-          <td class="parts-cell-left"><?= causalPartNoVal ?></td>
-          <td class="parts-cell-left"><?= causalPartNameVal ?></td>
-          <td class="parts-cell"><?= causalPartQtyVal ?></td>
-          <td class="parts-cell"><?= checkKMPC ?></td>
-          <td class="parts-cell"><?= checkPhoto ?></td>
-          <td class="parts-cell"><?= checkSPDealer ?></td>
-          <td class="parts-cell"><?= checkStock ?></td>
-          <td class="parts-cell"><?= checkKSC ?></td>
-          <td class="parts-cell"></td>
-        </tr>
-        <!-- Sub-header: AFFECTED PARTS -->
-        <tr>
-          <td class="parts-header-left" colspan="9" style="font-size: 7pt;">AFFECTED PARTS</td>
-        </tr>
-        <!-- Affected Parts Rows (7 blank rows) -->
-        <? 
-        var affectedParts = data.affectedParts || [];
-        for (var i = 0; i < 7; i++) { 
-          var part = (i < affectedParts.length) ? affectedParts[i] : {};
-          var partNoVal = part.partNo || part.partNO || part.partNumber || part.part_no || '';
-          var partNameVal = part.partName || part.name || part.part_description || part.partDescription || '';
-          var partQtyVal = part.qty || part.quantity || part.partQty || '';
-          
-          // Parse part supply method checkboxes for this affected part
-          var partSupply = String(part.supplyMethod || '').toUpperCase();
-          var checkKMPC_AP = partSupply.indexOf('KMPC') >= 0 ? '✓' : '';
-          var checkPhoto_AP = '';  // Photo needed (not used)
-          var checkSPDealer_AP = partSupply.indexOf('SP DEALER') >= 0 ? '✓' : '';
-          var checkStock_AP = partSupply.indexOf('USE STOCK') >= 0 ? '✓' : '';
-          var checkKSC_AP = partSupply.indexOf('KSC') >= 0 ? '✓' : '';
-        ?>
-        <tr>
-          <td class="parts-cell-left"><?= partNoVal ?></td>
-          <td class="parts-cell-left"><?= partNameVal ?></td>
-          <td class="parts-cell"><?= partQtyVal ?></td>
-          <td class="parts-cell"><?= checkKMPC_AP ?></td>
-          <td class="parts-cell"><?= checkPhoto_AP ?></td>
-          <td class="parts-cell"><?= checkSPDealer_AP ?></td>
-          <td class="parts-cell"><?= checkStock_AP ?></td>
-          <td class="parts-cell"><?= checkKSC_AP ?></td>
-          <td class="parts-cell"></td>
-        </tr>
-        <? } ?>
-      </table>
-      
-    </td>
-    <td style="width: 42%; vertical-align: top; padding: 0; border: none;">
-      
-      <!-- Illustration Box (Right Side) -->
-      <table style="width: 100%; height: 100%;">
-        <tr>
-          <td class="illustration-header">
-            <strong>No of unit with the same problem, if any:</strong>
-            <? if (data.unitsSameProblem || data.unitssameproblem || data['Units Same Problem']) { ?>
-              <span style="font-weight: normal; display: block; margin-top: 2pt; font-size: 7.5pt;">
-                <?= data.unitsSameProblem || data.unitssameproblem || data['Units Same Problem'] || '' ?>
-              </span>
-            <? } ?>
-            <br>
-            Illustration or picture indicating the problem:
-          </td>
-        </tr>
-        <tr>
-          <td class="illustration-content">
-            <? if (illustrationBase64) { ?>
-              <img src="<?!= illustrationBase64 ?>" alt="Illustration" />
+    <table>
+      <colgroup>
+        <col style="width: 64%;">
+        <col style="width: 36%;">
+      </colgroup>
+      <tr>
+        <td class="p0 top">
+          <table>
+            <colgroup>
+              <col style="width: 18%;">
+              <col style="width: 28%;">
+              <col style="width: 10%;">
+              <col style="width: 11%;">
+              <col style="width: 11%;">
+              <col style="width: 11%;">
+              <col style="width: 11%;">
+            </colgroup>
+            <tr class="h22">
+              <td class="box-label" colspan="3">CAUSAL PART / MAIN DEFECTIVE PART</td>
+              <td class="vertical" rowspan="2">KMPC H.O.</td>
+              <td class="vertical" rowspan="2">KSC</td>
+              <td class="vertical" rowspan="2">SP Dealer</td>
+              <td class="vertical" rowspan="2">Warranty Stock</td>
+            </tr>
+            <tr class="h20">
+              <td class="box-label center">PART NO</td>
+              <td class="box-label center">PART NAME</td>
+              <td class="box-label center">QTY</td>
+            </tr>
+            <tr class="h20">
+              <td class="center"><?= data.causalPartNo || '' ?></td>
+              <td><?= data.causalPartName || '' ?></td>
+              <td class="center"><?= data.causalPartQty || '' ?></td>
+              <? var causalSupply = String(data.partSupplyMethod || ''); ?>
+              <td class="center"><?= (causalSupply.indexOf('KMPC') >= 0) ? '✓' : '' ?></td>
+              <td class="center"><?= (causalSupply.indexOf('KSC') >= 0) ? '✓' : '' ?></td>
+              <td class="center"><?= (causalSupply.indexOf('SP Dealer') >= 0) ? '✓' : '' ?></td>
+              <td class="center"><?= (causalSupply.indexOf('Stock') >= 0) ? '✓' : '' ?></td>
+            </tr>
+            <tr class="h18">
+              <td class="box-label center" colspan="3">AFFECTED PARTS</td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+            </tr>
+            <? if (affectedParts && affectedParts.length > 0) { ?>
+              <? for (var i = 0; i < Math.min(affectedParts.length, 6); i++) { ?>
+                <? var sm = String(affectedParts[i].supplyMethod || ''); ?>
+                <tr class="h18">
+                  <td><?= affectedParts[i].partNo || '' ?></td>
+                  <td><?= affectedParts[i].partName || '' ?></td>
+                  <td class="center"><?= affectedParts[i].qty || '' ?></td>
+                  <td class="center"><?= (sm.indexOf('KMPC') >= 0) ? '✓' : '' ?></td>
+                  <td class="center"><?= (sm.indexOf('KSC') >= 0) ? '✓' : '' ?></td>
+                  <td class="center"><?= (sm.indexOf('SP Dealer') >= 0) ? '✓' : '' ?></td>
+                  <td class="center"><?= (sm.indexOf('Stock') >= 0) ? '✓' : '' ?></td>
+                </tr>
+              <? } ?>
+              <? for (var j = affectedParts.length; j < 6; j++) { ?>
+                <tr class="h18"><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+              <? } ?>
             <? } else { ?>
-              <div class="illustration-placeholder">(No image provided)</div>
+              <tr class="h18"><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+              <tr class="h18"><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+              <tr class="h18"><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+              <tr class="h18"><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+              <tr class="h18"><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+              <tr class="h18"><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
             <? } ?>
-          </td>
-        </tr>
-      </table>
-      
-    </td>
-  </tr>
-</table>
+          </table>
+        </td>
+        <td class="p0 top">
+          <table>
+            <tr class="h20">
+              <td class="box-label">No of unit with the same problem, if any:</td>
+            </tr>
+            <tr class="h20">
+              <td><?= data.unitsSameProblem || '' ?></td>
+            </tr>
+            <tr style="height: 110px; min-height: 110px;">
+              <td class="p0" style="vertical-align: top;">
+                <? 
+                  // Use data.illustrationDataUri (new pattern) OR fallback to illustrationBase64 (legacy)
+                  var illustrationSrc = data.illustrationDataUri || illustrationBase64 || '';
+                ?>
+                <div class="attach-placeholder <?= debug ? 'debug-border' : '' ?>">
+                  <? if (illustrationSrc && typeof illustrationSrc === 'string' && illustrationSrc.indexOf('data:image') === 0) { ?>
+                    <img id="wcfIllustration" src="<?!= illustrationSrc ?>" alt="">
+                  <? } ?>
+                </div>
+                <? if (debug) { ?>
+                  <div class="debug-text">
+                    [ILL] len=<?= (illustrationSrc || '').length ?> | <?= (illustrationSrc || '').substring(0, 40) ?>...
+                  </div>
+                <? } ?>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
 
-<!-- ════════════════════════════════════════════════════════════
-     DELIVER TO Section
-     ════════════════════════════════════════════════════════════ -->
-<table style="margin-top: 1pt;" class="no-page-break">
-  <tr>
-    <td class="field-label" style="width: 1.1in;">DELIVER TO:</td>
-    <td class="field-value" style="padding: 3pt 6pt;"><?= data.deliverTo || '' ?></td>
-  </tr>
-  <tr>
-    <td colspan="2" style="font-size: 7pt; text-align: center; padding: 3pt; border-top: 1px solid #000;">
-      For follow up, please call: <strong>KMPC Trunkline (Luzon) 8842-31-40 loc. 5363 / 5364</strong>
-    </td>
-  </tr>
-</table>
+    <table>
+      <colgroup>
+        <col style="width: 14%;">
+        <col style="width: 86%;">
+      </colgroup>
+      <tr class="h18">
+        <td class="box-label">DELIVER TO:</td>
+        <td><?= data.deliverTo || '' ?></td>
+      </tr>
+      <tr class="h16">
+        <td class="center tiny" colspan="2">For follow up, please call: KMPC Trunkline (Luzon) 8842-3140 loc. 5263 / 5364</td>
+      </tr>
+    </table>
 
-<!-- ════════════════════════════════════════════════════════════
-     FOR KSN USE ONLY - Signature Blocks
-     ════════════════════════════════════════════════════════════ -->
-<table style="margin-top: 1pt;" class="no-page-break">
-  <tr>
-    <td class="use-only-band" colspan="3">FOR KSN USE ONLY</td>
-  </tr>
-  <tr>
-    <td class="sig-header" style="width: 33.33%;">Prepared by:<br><span style="font-size: 6.5pt; font-weight: normal;">(Branch Manager/Service Manager)</span></td>
-    <td class="sig-header" style="width: 33.34%;">Acknowledged by:<br><span style="font-size: 6.5pt; font-weight: normal;">(Acknowledge of parts)</span></td>
-    <td class="sig-header" style="width: 33.33%;">Warranty Repair Conducted by:</td>
-  </tr>
-  <!-- Printed Names -->
-  <tr>
-    <td class="sig-name"><?= data.preparedByName || '' ?></td>
-    <td class="sig-name"><?= data.acknowledgedByName || '' ?></td>
-    <td class="sig-name"><?= data.warrantyRepairName || '' ?></td>
-  </tr>
-  <!-- Signature Images -->
-  <tr>
-    <td class="sig-image">
-      <? if (prepSigBase64) { ?>
-        <img src="<?!= prepSigBase64 ?>" alt="Signature" />
-      <? } ?>
-    </td>
-    <td class="sig-image">
-      <? if (ackSigBase64) { ?>
-        <img src="<?!= ackSigBase64 ?>" alt="Signature" />
-      <? } ?>
-    </td>
-    <td class="sig-image">
-      <? if (warSigBase64) { ?>
-        <img src="<?!= warSigBase64 ?>" alt="Signature" />
-      <? } ?>
-    </td>
-  </tr>
-  <!-- Footer Labels -->
-  <tr>
-    <td class="sig-footer">Name/ Designation/Signature/Date</td>
-    <td class="sig-footer">Name/ Designation/Signature/Date</td>
-    <td class="sig-footer">Name/ Designation/Signature/Date</td>
-  </tr>
-</table>
+    <table>
+      <tr class="h18"><td class="center bold">FOR KSN USE ONLY</td></tr>
+    </table>
 
-<!-- ════════════════════════════════════════════════════════════
-     FOR KMPC USE ONLY - Claim Judgment
-     ════════════════════════════════════════════════════════════ -->
-<table style="margin-top: 1pt;" class="no-page-break">
-  <tr>
-    <td class="use-only-band" colspan="5">FOR KMPC USE ONLY</td>
-  </tr>
-  <tr>
-    <td class="judgment-title" style="width: 16%;">Claim Judgment</td>
-    <td class="judgment-title" style="width: 24%;">Reason(s) of Rejection</td>
-    <td class="judgment-title" style="width: 24%; text-align:left; padding-left:4pt;">Remarks:</td>
-    <td class="judgment-title" style="width: 18%; text-align:left; padding-left:4pt;">Evaluated by:</td>
-    <td class="judgment-title" style="width: 18%; text-align:left; padding-left:4pt;">Noted by:</td>
-  </tr>
-  <tr>
-    <td style="vertical-align: top; padding: 3pt 4pt;" rowspan="3">
-      <div style="margin-bottom: 2pt;"><span class="cb"><?= claimChecked('ACCEPTED') ?></span><span class="cb-label"><strong>Accepted</strong></span></div>
-      <div style="margin-bottom: 2pt;"><span class="cb"><?= claimChecked('REJECTED') ?></span><span class="cb-label"><strong>Rejected</strong></span></div>
-      <div><span class="cb"><?= claimChecked('RETURNED') ?></span><span class="cb-label"><strong>Returned</strong></span></div>
-    </td>
-    <td style="vertical-align: top; padding: 3pt 4pt;" rowspan="3">
-      <div style="margin-bottom: 2pt;"><span class="cb"><?= rejectReasonChecked(1) ?></span><span class="cb-label">Wrong frame / engine no.</span></div>
-      <div style="margin-bottom: 2pt;"><span class="cb"><?= rejectReasonChecked(2) ?></span><span class="cb-label">Warranty period expired</span></div>
-      <div style="margin-bottom: 2pt;"><span class="cb"><?= rejectReasonChecked(3) ?></span><span class="cb-label">Not covered by warranty</span></div>
-      <div style="margin-bottom: 2pt;"><span class="cb"><?= rejectReasonChecked(4) ?></span><span class="cb-label">Insufficient description</span></div>
-      <div><span class="cb"><?= rejectReasonChecked(5) ?></span><span class="cb-label">Others: Pls. see remarks</span></div>
-    </td>
-    <td style="vertical-align: top; padding: 2pt 4pt; min-height: 0.65in;" rowspan="3"><?= data.remarks || '' ?></td>
-    <td style="vertical-align: top; padding: 2pt 4pt; min-height: 0.65in;" rowspan="3"><?= data.evaluatedBy || '' ?></td>
-    <td style="vertical-align: top; padding: 2pt 4pt; min-height: 0.65in;" rowspan="3"><?= data.notedBy || '' ?></td>
-  </tr>
-  <tr>
-  </tr>
-  <tr>
-  </tr>
-  <tr>
-    <td colspan="5" style="padding: 2pt 4pt;"><strong>TSWR No.</strong> <?= data.tswrNo || '' ?></td>
-  </tr>
-</table>
+    <table>
+      <colgroup>
+        <col style="width: 33.33%;">
+        <col style="width: 33.33%;">
+        <col style="width: 33.34%;">
+      </colgroup>
+      <tr class="h18">
+        <td class="center box-label">Prepared by:</td>
+        <td class="center box-label">Acknowledged by:</td>
+        <td class="center box-label">Warranty Repair Conducted by:</td>
+      </tr>
+      <tr style="height: 52px; min-height: 52px;">
+        <td class="top center" style="vertical-align: top; padding: 4px;">
+          <? var prepSigSrc = data.preparedBySigDataUri || prepSigBase64 || ''; ?>
+          <div class="signature-box <?= debug ? 'debug-border' : '' ?>">
+            <? if (prepSigSrc && typeof prepSigSrc === 'string' && prepSigSrc.indexOf('data:image') === 0) { ?>
+              <img id="sigPrepared" src="<?!= prepSigSrc ?>" alt="">
+            <? } ?>
+          </div>
+          <? if (debug) { ?>
+            <div class="debug-text">[PREP] len=<?= (prepSigSrc || '').length ?> | <?= (prepSigSrc || '').substring(0, 30) ?>...</div>
+          <? } ?>
+          <span class="signature-line"><?= data.preparedByName || '' ?></span>
+        </td>
+        <td class="top center" style="vertical-align: top; padding: 4px;">
+          <? var ackSigSrc = data.ackSigDataUri || ackSigBase64 || ''; ?>
+          <div class="signature-box <?= debug ? 'debug-border' : '' ?>">
+            <? if (ackSigSrc && typeof ackSigSrc === 'string' && ackSigSrc.indexOf('data:image') === 0) { ?>
+              <img id="sigAcknowledged" src="<?!= ackSigSrc ?>" alt="">
+            <? } ?>
+          </div>
+          <? if (debug) { ?>
+            <div class="debug-text">[ACK] len=<?= (ackSigSrc || '').length ?> | <?= (ackSigSrc || '').substring(0, 30) ?>...</div>
+          <? } ?>
+          <span class="signature-line"><?= data.acknowledgedByName || '' ?></span>
+        </td>
+        <td class="top center" style="vertical-align: top; padding: 4px;">
+          <? var warSigSrc = data.warrantyRepairSigDataUri || warSigBase64 || ''; ?>
+          <div class="signature-box <?= debug ? 'debug-border' : '' ?>">
+            <? if (warSigSrc && typeof warSigSrc === 'string' && warSigSrc.indexOf('data:image') === 0) { ?>
+              <img id="sigWarrantyRepair" src="<?!= warSigSrc ?>" alt="">
+            <? } ?>
+          </div>
+          <? if (debug) { ?>
+            <div class="debug-text">[WAR] len=<?= (warSigSrc || '').length ?> | <?= (warSigSrc || '').substring(0, 30) ?>...</div>
+          <? } ?>
+          <span class="signature-line"><?= data.warrantyRepairName || '' ?></span>
+        </td>
+      </tr>
+    </table>
 
-<!-- Footer revision note -->
-<div style="text-align: right; font-size: 6.5pt; padding-top: 3pt; margin-top: 2pt;">
-  Revised TSWR 1.1
-</div>
+    <table>
+      <tr class="h18"><td class="center bold">FOR KMPC USE ONLY</td></tr>
+    </table>
 
+    <table>
+      <colgroup>
+        <col style="width: 18%;">
+        <col style="width: 26%;">
+        <col style="width: 24%;">
+        <col style="width: 16%;">
+        <col style="width: 16%;">
+      </colgroup>
+      <tr class="h18">
+        <td class="center box-label">Claim Judgment</td>
+        <td class="center box-label">Reason(s) of Rejection</td>
+        <td class="center box-label">Remarks</td>
+        <td class="center box-label">Evaluated by:</td>
+        <td class="center box-label">Noted by:</td>
+      </tr>
+      <tr class="h58">
+        <td class="top">
+          <div><span class="checkbox"><?= claimChecked('ACCEPTED') ?></span>Accepted</div>
+          <div><span class="checkbox"><?= claimChecked('REJECTED') ?></span>Rejected</div>
+          <div><span class="checkbox"><?= claimChecked('RETURNED') ?></span>Returned</div>
+        </td>
+        <td class="top">
+          <div><span class="checkbox"><?= rejectReasonChecked('1') ?></span>Wrong frame / engine no.</div>
+          <div><span class="checkbox"><?= rejectReasonChecked('2') ?></span>Warranty period expired</div>
+          <div><span class="checkbox"><?= rejectReasonChecked('3') ?></span>Not covered by warranty</div>
+          <div><span class="checkbox"><?= rejectReasonChecked('4') ?></span>Insufficient description</div>
+          <div><span class="checkbox"><?= rejectReasonChecked('5') ?></span>Others: Pls. see remarks</div>
+        </td>
+        <td class="top"><?= data.claimRemarks || '' ?></td>
+        <td class="top"><?= data.evaluatedBy || '' ?></td>
+        <td class="top"><?= data.notedBy || '' ?></td>
+      </tr>
+      <tr class="h18">
+        <td colspan="3"></td>
+        <td class="box-label" colspan="2">TSWR No. &nbsp; <?= data.tswrNo || '' ?></td>
+      </tr>
+    </table>
+  </div>
+  <? if (debug) { ?>
+  <!-- KNOWN-GOOD TEST: 1x1 red PNG (if this renders, the PDF renderer supports data URIs) -->
+  <div style="position:absolute; bottom:0; right:0; width:10px; height:10px;">
+    <img id="testKnownGood" src="<?!= 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==' ?>" alt="test" style="display:block; width:1px; height:1px;">
+  </div>
+  <? } ?>
 </body>
 </html>
