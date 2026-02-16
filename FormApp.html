@@ -645,8 +645,8 @@
                 <input type="text" id="firstName" name="firstName" required aria-required="true" placeholder="Juan">
               </div>
               <div class="form-group">
-                <label for="mi">Middle Initial <span class="hint">(required)</span></label>
-                <input type="text" id="mi" name="mi" maxlength="3" placeholder="D">
+                <label for="mi">Middle Initial <span class="req">*</span></label>
+                <input type="text" id="mi" name="mi" maxlength="3" placeholder="D" required aria-required="true">
               </div>
               <div class="form-group">
                 <label for="lastName">Last Name <span class="req">*</span></label>
@@ -655,16 +655,15 @@
             </div>
             <div class="form-row-2">
               <div class="form-group">
-                <label for="age">Age <span class="hint">(required)</span></label>
-                <input type="number" id="age" name="age" min="1" max="120" placeholder="25">
+                <label for="age">Age <span class="req">*</span></label>
+                <input type="number" id="age" name="age" min="1" max="120" placeholder="25" required aria-required="true">
               </div>
               <div class="form-group">
-                <label for="gender">Gender <span class="hint">(required)</span></label>
-                <select id="gender" name="gender">
+                <label for="gender">Gender <span class="req">*</span></label>
+                <select id="gender" name="gender" required aria-required="true">
                   <option value="">Select Gender</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
-                  <option value="Other">Other</option>
                 </select>
               </div>
             </div>
@@ -687,12 +686,12 @@
             </div>
             <div class="form-row-2">
               <div class="form-group">
-                <label for="munCity">Municipality/City <span class="hint">(required)</span></label>
-                <input type="text" id="munCity" name="munCity" placeholder="e.g., Quezon City">
+                <label for="munCity">Municipality/City <span class="req">*</span></label>
+                <input type="text" id="munCity" name="munCity" placeholder="e.g., Quezon City" required aria-required="true">
               </div>
               <div class="form-group">
-                <label for="province">Province <span class="hint">(required)</span></label>
-                <select id="province" name="province">
+                <label for="province">Province <span class="req">*</span></label>
+                <select id="province" name="province" required aria-required="true">
                   <option value="">Select Province</option>
                 </select>
                 <span class="help-text">Loaded dynamically from server</span>
@@ -700,8 +699,8 @@
             </div>
             <div class="form-row-full">
               <div class="form-group">
-                <label for="customerAddress">Zone/Purok/Sitio/Brgy Address *only <span class="hint">(required)</span></label>
-                <input type="text" id="customerAddress" name="customerAddress" placeholder="Complete address">
+                <label for="customerAddress">Zone/Purok/Sitio/Brgy Address <span class="req">*</span></label>
+                <input type="text" id="customerAddress" name="customerAddress" placeholder="Complete address" required aria-required="true">
               </div>
             </div>
           </div>
@@ -713,7 +712,6 @@
               <div class="form-group">
                 <label for="datePurchased">Date Purchased <span class="req">*</span></label>
                 <input type="date" id="datePurchased" name="datePurchased" required aria-required="true">
-                <span class="help-text">Stored as mmddyyyy without slashes</span>
               </div>
               <div class="form-group">
                 <label for="wrcDealerCode">Dealer Code <span class="req">*</span></label>
@@ -860,8 +858,8 @@
             </div>
             <div class="form-row-2">
               <div class="form-group">
-                <label for="couponNumber">Coupon Number <span class="hint">(required)</span></label>
-                <select id="couponNumber" name="couponNumber">
+                <label for="couponNumber">Coupon Number <span class="req">*</span></label>
+                <select id="couponNumber" name="couponNumber" required aria-required="true">
                   <option value="">Select Coupon Number</option>
                   <option value="1">1</option>
                   <option value="2">2</option>
@@ -1095,8 +1093,8 @@
                 <input type="date" id="wcfPreparedDate" name="wcfPreparedDate" required aria-required="true">
               </div>
               <div class="form-group">
-                <label for="wcfJobOrderNo">Job Order No.</label>
-                <input type="text" id="wcfJobOrderNo" name="wcfJobOrderNo" placeholder="Job order number">
+                <label for="wcfJobOrderNo">Job Order No. <span class="req">*</span></label>
+                <input type="text" id="wcfJobOrderNo" name="wcfJobOrderNo" placeholder="Job order number" required aria-required="true">
               </div>
             </div>
           </div>
@@ -1110,14 +1108,14 @@
                 <input type="text" id="wcfDealerName" name="wcfDealerName" required aria-required="true" placeholder="Dealer name" value="GIANT MOTO PRO CORP.">
               </div>
               <div class="form-group">
-                <label for="wcfDealerPhone">Phone Number</label>
-                <input type="tel" id="wcfDealerPhone" name="wcfDealerPhone" placeholder="Dealer phone number">
+                <label for="wcfDealerPhone">Phone Number <span class="req">*</span></label>
+                <input type="tel" id="wcfDealerPhone" name="wcfDealerPhone" placeholder="Dealer phone number" required aria-required="true">
               </div>
             </div>
             <div class="form-row-full">
               <div class="form-group">
-                <label for="wcfDealerAddress">Dealer's Address</label>
-                <input type="text" id="wcfDealerAddress" name="wcfDealerAddress" placeholder="Dealer address">
+                <label for="wcfDealerAddress">Dealer's Address <span class="req">*</span></label>
+                <input type="text" id="wcfDealerAddress" name="wcfDealerAddress" placeholder="Dealer address" required aria-required="true">
               </div>
             </div>
           </div>
@@ -1131,14 +1129,14 @@
                 <input type="text" id="wcfCustomerName" name="wcfCustomerName" required aria-required="true" placeholder="Customer full name">
               </div>
               <div class="form-group">
-                <label for="wcfCustomerPhone">Phone Number</label>
-                <input type="tel" id="wcfCustomerPhone" name="wcfCustomerPhone" placeholder="Customer phone number">
+                <label for="wcfCustomerPhone">Phone Number <span class="req">*</span></label>
+                <input type="tel" id="wcfCustomerPhone" name="wcfCustomerPhone" placeholder="Customer phone number" required aria-required="true">
               </div>
             </div>
             <div class="form-row-full">
               <div class="form-group">
-                <label for="wcfCustomerAddress">Customer's Address</label>
-                <input type="text" id="wcfCustomerAddress" name="wcfCustomerAddress" placeholder="Customer address">
+                <label for="wcfCustomerAddress">Customer's Address <span class="req">*</span></label>
+                <input type="text" id="wcfCustomerAddress" name="wcfCustomerAddress" placeholder="Customer address" required aria-required="true">
               </div>
             </div>
           </div>
@@ -1152,8 +1150,8 @@
                 <input type="text" id="wcfModel" name="wcfModel" required aria-required="true" placeholder="Motorcycle model">
               </div>
               <div class="form-group">
-                <label for="wcfColor">Color</label>
-                <input type="text" id="wcfColor" name="wcfColor" placeholder="Unit color">
+                <label for="wcfColor">Color <span class="req">*</span></label>
+                <input type="text" id="wcfColor" name="wcfColor" placeholder="Unit color" required aria-required="true">
               </div>
             </div>
             <div class="form-row-2">
@@ -1172,8 +1170,8 @@
                 <input type="text" id="wcfWrcNo" name="wcfWrcNo" required aria-required="true" placeholder="WRC number">
               </div>
               <div class="form-group">
-                <label for="wcfKilometerRun">Kilometer Run</label>
-                <input type="number" id="wcfKilometerRun" name="wcfKilometerRun" min="0" placeholder="0">
+                <label for="wcfKilometerRun">Kilometer Run <span class="req">*</span></label>
+                <input type="number" id="wcfKilometerRun" name="wcfKilometerRun" min="0" placeholder="0" required aria-required="true">
               </div>
             </div>
           </div>
@@ -1193,12 +1191,12 @@
             </div>
             <div class="form-row-2">
               <div class="form-group">
-                <label for="wcfReportedDate">Reported Date</label>
-                <input type="date" id="wcfReportedDate" name="wcfReportedDate">
+                <label for="wcfReportedDate">Reported Date <span class="req">*</span></label>
+                <input type="date" id="wcfReportedDate" name="wcfReportedDate" required aria-required="true">
               </div>
               <div class="form-group">
-                <label for="wcfRepairDate">Repair Date</label>
-                <input type="date" id="wcfRepairDate" name="wcfRepairDate">
+                <label for="wcfRepairDate">Repair Date <span class="req">*</span></label>
+                <input type="date" id="wcfRepairDate" name="wcfRepairDate" required aria-required="true">
               </div>
             </div>
           </div>
@@ -1208,11 +1206,11 @@
             <h3 class="section-title">Motorcycle Usage</h3>
             <div class="form-row-full">
               <div class="form-group">
-                <label>MC Usage</label>
+                <label>MC Usage <span class="req">*</span></label>
                 <div class="radio-group">
-                  <label class="radio-label"><input type="radio" name="wcfMcUsage" value="SOLO"> SOLO</label>
-                  <label class="radio-label"><input type="radio" name="wcfMcUsage" value="Tricycle"> Tricycle</label>
-                  <label class="radio-label"><input type="radio" name="wcfMcUsage" value="Others"> Others</label>
+                  <label class="radio-label"><input type="radio" name="wcfMcUsage" value="SOLO" required> SOLO</label>
+                  <label class="radio-label"><input type="radio" name="wcfMcUsage" value="Tricycle" required> Tricycle</label>
+                  <label class="radio-label"><input type="radio" name="wcfMcUsage" value="Others" required> Others</label>
                 </div>
                 <input type="text" id="wcfMcUsageOther" name="wcfMcUsageOther" placeholder="Specify other usage" style="display:none; margin-top:8px;">
               </div>
@@ -1230,20 +1228,20 @@
             </div>
             <div class="form-row-full">
               <div class="form-group">
-                <label for="wcfProbableCause">(B) Probable Cause of the Problem Evaluated by KSN</label>
-                <textarea id="wcfProbableCause" name="wcfProbableCause" rows="3" placeholder="Probable cause evaluation..."></textarea>
+                <label for="wcfProbableCause">(B) Probable Cause of the Problem Evaluated by KSN <span class="req">*</span></label>
+                <textarea id="wcfProbableCause" name="wcfProbableCause" rows="3" placeholder="Probable cause evaluation..." required aria-required="true"></textarea>
               </div>
             </div>
             <div class="form-row-full">
               <div class="form-group">
-                <label for="wcfCorrectiveAction">(C) Corrective Action from KSN</label>
-                <textarea id="wcfCorrectiveAction" name="wcfCorrectiveAction" rows="3" placeholder="Corrective action taken..."></textarea>
+                <label for="wcfCorrectiveAction">(C) Corrective Action from KSN <span class="req">*</span></label>
+                <textarea id="wcfCorrectiveAction" name="wcfCorrectiveAction" rows="3" placeholder="Corrective action taken..." required aria-required="true"></textarea>
               </div>
             </div>
             <div class="form-row-full">
               <div class="form-group">
-                <label for="wcfSuggestionRemarks">(D) Suggestion for Improvement / Remarks by KSN</label>
-                <textarea id="wcfSuggestionRemarks" name="wcfSuggestionRemarks" rows="3" placeholder="Suggestions or remarks..."></textarea>
+                <label for="wcfSuggestionRemarks">(D) Suggestion for Improvement / Remarks by KSN <span class="req">*</span></label>
+                <textarea id="wcfSuggestionRemarks" name="wcfSuggestionRemarks" rows="3" placeholder="Suggestions or remarks..." required aria-required="true"></textarea>
               </div>
             </div>
           </div>
@@ -1254,24 +1252,24 @@
             <p style="font-size:0.9rem;color:var(--color-text-light);margin-bottom:12px">Causal Part / Main Defective Part</p>
             <div class="form-row-3">
               <div class="form-group">
-                <label for="wcfCausalPartNo">Part No.</label>
-                <input type="text" id="wcfCausalPartNo" name="wcfCausalPartNo" placeholder="Part number">
+                <label for="wcfCausalPartNo">Part No. <span class="req">*</span></label>
+                <input type="text" id="wcfCausalPartNo" name="wcfCausalPartNo" placeholder="Part number" required aria-required="true">
               </div>
               <div class="form-group">
-                <label for="wcfCausalPartName">Part Name</label>
-                <input type="text" id="wcfCausalPartName" name="wcfCausalPartName" placeholder="Part name">
+                <label for="wcfCausalPartName">Part Name <span class="req">*</span></label>
+                <input type="text" id="wcfCausalPartName" name="wcfCausalPartName" placeholder="Part name" required aria-required="true">
               </div>
               <div class="form-group">
-                <label for="wcfCausalPartQty">Qty</label>
-                <input type="number" id="wcfCausalPartQty" name="wcfCausalPartQty" min="0" placeholder="0">
+                <label for="wcfCausalPartQty">Qty <span class="req">*</span></label>
+                <input type="number" id="wcfCausalPartQty" name="wcfCausalPartQty" min="0" placeholder="0" required aria-required="true">
               </div>
             </div>
 
             <div class="form-row-full">
               <div class="form-group">
-                <label>Part Supply Method</label>
+                <label>Part Supply Method <span class="req">*</span></label>
                 <div class="checkbox-group">
-                  <label class="checkbox-label"><input type="checkbox" name="wcfPartSupply" value="KMPC H.O."> Part to be sent by KMPC H.O.</label>
+                  <label class="checkbox-label"><input type="checkbox" name="wcfPartSupply" value="KMPC H.O." required> Part to be sent by KMPC H.O.</label>
                   <label class="checkbox-label"><input type="checkbox" name="wcfPartSupply" value="KSC"> Part to be served by KSC</label>
                   <label class="checkbox-label"><input type="checkbox" name="wcfPartSupply" value="SP Dealer"> Buy parts from SP Dealer</label>
                   <label class="checkbox-label"><input type="checkbox" name="wcfPartSupply" value="Use Stock"> Use stock for warranty</label>
@@ -1340,8 +1338,8 @@
             <h3 class="section-title">Delivery Information</h3>
             <div class="form-row-full">
               <div class="form-group">
-                <label for="wcfDeliverTo">Deliver To</label>
-                <input type="text" id="wcfDeliverTo" name="wcfDeliverTo" placeholder="Parts delivery destination">
+                <label for="wcfDeliverTo">Deliver To <span class="req">*</span></label>
+                <input type="text" id="wcfDeliverTo" name="wcfDeliverTo" placeholder="Parts delivery destination" required aria-required="true">
               </div>
             </div>
           </div>
@@ -1351,8 +1349,8 @@
             <h3 class="section-title">Signatures / Authorization</h3>
             <div class="form-row-3">
               <div class="form-group">
-                <label>Prepared by</label>
-                <input type="text" id="wcfPreparedByName" name="wcfPreparedByName" placeholder="Printed name" style="margin-bottom:8px">
+                <label>Prepared by <span class="req">*</span></label>
+                <input type="text" id="wcfPreparedByName" name="wcfPreparedByName" placeholder="Printed name" style="margin-bottom:8px" required aria-required="true">
                 <div class="signature-pad-container" style="margin-top:8px">
                   <label style="font-size:0.85rem;color:#666;margin-bottom:4px;display:block">Signature</label>
                   <canvas id="wcfPreparedBySignature" class="signature-canvas" width="250" height="100"></canvas>
@@ -1360,8 +1358,8 @@
                 </div>
               </div>
               <div class="form-group">
-                <label>Acknowledged by <span class="hint">(Branch Mgr / Service Mgr)</span></label>
-                <input type="text" id="wcfAcknowledgedByName" name="wcfAcknowledgedByName" placeholder="Printed name" style="margin-bottom:8px">
+                <label>Acknowledged by <span class="hint">(Branch Mgr / Service Mgr)</span> <span class="req">*</span></label>
+                <input type="text" id="wcfAcknowledgedByName" name="wcfAcknowledgedByName" placeholder="Printed name" style="margin-bottom:8px" required aria-required="true">
                 <div class="signature-pad-container" style="margin-top:8px">
                   <label style="font-size:0.85rem;color:#666;margin-bottom:4px;display:block">Signature</label>
                   <canvas id="wcfAcknowledgedBySignature" class="signature-canvas" width="250" height="100"></canvas>
@@ -1369,8 +1367,8 @@
                 </div>
               </div>
               <div class="form-group">
-                <label>Warranty Repair Conducted by</label>
-                <input type="text" id="wcfWarrantyRepairName" name="wcfWarrantyRepairName" placeholder="Printed name" style="margin-bottom:8px">
+                <label>Warranty Repair Conducted by <span class="req">*</span></label>
+                <input type="text" id="wcfWarrantyRepairName" name="wcfWarrantyRepairName" placeholder="Printed name" style="margin-bottom:8px" required aria-required="true">
                 <div class="signature-pad-container" style="margin-top:8px">
                   <label style="font-size:0.85rem;color:#666;margin-bottom:4px;display:block">Signature</label>
                   <canvas id="wcfWarrantyRepairSignature" class="signature-canvas" width="250" height="100"></canvas>
@@ -1590,7 +1588,7 @@
       inputs.forEach(function(input) {
         var fieldLabel = '';
         var label = input.parentElement.querySelector('label');
-        if (label) fieldLabel = label.textContent.replace('*','').trim();
+        if (label) fieldLabel = label.textContent.replace(/\*/g,'').trim();
         else fieldLabel = input.getAttribute('aria-label') || input.name || 'Unknown';
 
         var isEmpty = false;
@@ -1598,6 +1596,34 @@
         
         if (input.type === 'file') {
           isEmpty = !fileStorage[formType];
+        } else if (input.type === 'radio') {
+          // For radio buttons, check if ANY in the group is checked
+          var radioName = input.getAttribute('name');
+          var radioGroup = formElement.querySelectorAll('input[name="' + radioName + '"]');
+          var anyChecked = false;
+          radioGroup.forEach(function(r) { if (r.checked) anyChecked = true; });
+          isEmpty = !anyChecked;
+          // Only show error once per radio group (on first element)
+          if (isEmpty && input === radioGroup[0]) {
+            isValid = false;
+            input.parentElement.parentElement.classList.add('field-error');
+            missingFields.push(fieldLabel);
+          }
+          return; // Skip individual radio button validation
+        } else if (input.type === 'checkbox') {
+          // For checkbox groups with required, check if at least one is checked
+          var checkboxName = input.getAttribute('name');
+          var checkboxGroup = formElement.querySelectorAll('input[name="' + checkboxName + '"]');
+          var anyChecked = false;
+          checkboxGroup.forEach(function(cb) { if (cb.checked) anyChecked = true; });
+          isEmpty = !anyChecked;
+          // Only show error once per checkbox group (on first element)
+          if (isEmpty && input === checkboxGroup[0]) {
+            isValid = false;
+            input.parentElement.parentElement.classList.add('field-error');
+            missingFields.push(fieldLabel + ' (select at least one)');
+          }
+          return; // Skip individual checkbox validation
         } else if (input.tagName === 'SELECT') {
           isEmpty = !input.value || input.value === '';
         } else {
@@ -1634,6 +1660,35 @@
           }
         }
       });
+
+      // WCF-specific: Validate signatures (canvas elements)
+      if (formType === 'wcf') {
+        var signatureFields = [
+          { id: 'wcfPreparedBySignature', label: 'Prepared by Signature' },
+          { id: 'wcfAcknowledgedBySignature', label: 'Acknowledged by Signature' },
+          { id: 'wcfWarrantyRepairSignature', label: 'Warranty Repair Signature' }
+        ];
+        
+        signatureFields.forEach(function(sig) {
+          var pad = signaturePads[sig.id];
+          if (pad && pad.isEmpty) {
+            isValid = false;
+            missingFields.push(sig.label);
+            var canvas = document.getElementById(sig.id);
+            if (canvas) {
+              canvas.parentElement.classList.add('field-error');
+              var existingError = canvas.parentElement.querySelector('.error-message');
+              if (!existingError) {
+                var errorSpan = document.createElement('span');
+                errorSpan.className = 'error-message';
+                errorSpan.textContent = 'Signature is required';
+                errorSpan.setAttribute('role','alert');
+                canvas.parentElement.appendChild(errorSpan);
+              }
+            }
+          }
+        });
+      }
 
       // Show validation banner if errors exist
       var banner = document.getElementById(formType + 'ValidationBanner');
