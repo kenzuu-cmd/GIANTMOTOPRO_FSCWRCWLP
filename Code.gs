@@ -377,21 +377,20 @@ const REQUIRED_FIELDS = {
     { key: 'wrcNo', label: 'WRC Number', type: 'text' },
     { key: 'engineNo', label: 'Engine Number', type: 'text' },
     { key: 'firstName', label: 'First Name', type: 'text' },
+    { key: 'mi', label: 'Middle Initial', type: 'text' },
     { key: 'lastName', label: 'Last Name', type: 'text' },
+    { key: 'munCity', label: 'Municipality/City', type: 'text' },
+    { key: 'province', label: 'Province', type: 'select' },
+    { key: 'customerAddress', label: 'Customer Address', type: 'text' },
+    { key: 'age', label: 'Age', type: 'number' },
+    { key: 'gender', label: 'Gender', type: 'select' },
     { key: 'contactNo', label: 'Contact Number', type: 'text' },
     { key: 'email', label: 'Email Address', type: 'text' },
     { key: 'branch', label: 'Branch', type: 'select' },
     { key: 'datePurchased', label: 'Date Purchased', type: 'date' },
     { key: 'dealerCode', label: 'Dealer Code', type: 'select' },
     { key: 'dealerName', label: 'Dealer Name', removed: true }, // Auto-derived, not required
-    { key: 'fileUrl', label: 'Document/Image Upload', type: 'file' },
-    // Optional fields
-    { key: 'mi', label: 'Middle Initial', optional: true },
-    { key: 'munCity', label: 'Municipality/City', optional: true },
-    { key: 'province', label: 'Province', optional: true },
-    { key: 'customerAddress', label: 'Customer Address', optional: true },
-    { key: 'age', label: 'Age', optional: true },
-    { key: 'gender', label: 'Gender', optional: true }
+    { key: 'fileUrl', label: 'Document/Image Upload', type: 'file' }
   ],
   
   FSC: [
@@ -400,15 +399,14 @@ const REQUIRED_FIELDS = {
     { key: 'wrcNumber', label: 'WRC Number', type: 'text' },
     { key: 'frameNumber', label: 'Frame Number', type: 'text' },
     { key: 'actualMileage', label: 'Actual Mileage', type: 'text' },
+    { key: 'couponNumber', label: 'Coupon Number', type: 'text' },
     { key: 'repairedMonth', label: 'Repaired Date (Month)', type: 'date' },
     { key: 'repairedDay', label: 'Repaired Date (Day)', type: 'date' },
     { key: 'repairedYear', label: 'Repaired Date (Year)', type: 'date' },
     { key: 'email', label: 'Email Address', type: 'text' },
     { key: 'branch', label: 'Branch', type: 'select' },
     { key: 'fileUrl', label: 'Document/Image Upload', type: 'file' },
-    { key: 'kscCode', label: 'KSC Code', removed: true }, // Field was removed
-    // Optional fields
-    { key: 'couponNumber', label: 'Coupon Number', optional: true }
+    { key: 'kscCode', label: 'KSC Code', removed: true } // Field was removed
   ],
   
   WLP: [
@@ -426,48 +424,49 @@ const REQUIRED_FIELDS = {
     // Dealer & Customer Info
     { key: 'dealerName', label: "Dealer's Name", type: 'text' },
     { key: 'dealerAddress', label: "Dealer's Address", type: 'text' },
+    { key: 'dealerPhone', label: 'Dealer Phone', type: 'text' },
     { key: 'customerName', label: "Customer's Name", type: 'text' },
     { key: 'customerAddress', label: "Customer's Address", type: 'text' },
+    { key: 'customerPhone', label: 'Customer Phone', type: 'text' },
     // Unit Info
     { key: 'model', label: 'Model', type: 'text' },
+    { key: 'color', label: 'Color', type: 'text' },
     { key: 'frameNo', label: 'Frame Number', type: 'text' },
     { key: 'engineNo', label: 'Engine Number', type: 'text' },
+    { key: 'wrcNo', label: 'WRC No.', type: 'text' },
     { key: 'kilometerRun', label: 'Kilometer Run', type: 'text' },
     { key: 'mcUsage', label: 'MC Usage', type: 'select' },
+    { key: 'mcUsageOther', label: 'MC Usage Other', type: 'text', conditional: function(data) { return data.mcUsage === 'Others'; } },
     // Dates
     { key: 'purchaseDate', label: 'Purchase Date', type: 'date' },
     { key: 'failureDate', label: 'Failure Date', type: 'date' },
     { key: 'reportedDate', label: 'Reported Date', type: 'date' },
     { key: 'repairDate', label: 'Repair Date', type: 'date' },
+    { key: 'preparedDate', label: 'Prepared Date', type: 'date' },
+    { key: 'jobOrderNo', label: 'Job Order No.', type: 'text' },
     // Narratives
     { key: 'problemComplaint', label: 'Problem/Complaint', type: 'text' },
     { key: 'probableCause', label: 'Probable Cause', type: 'text' },
     { key: 'correctiveAction', label: 'Corrective Action', type: 'text' },
+    { key: 'suggestionRemarks', label: 'Suggestion/Remarks', type: 'text' },
     // Parts
     { key: 'causalPartNo', label: 'Causal Part Number', type: 'text' },
     { key: 'causalPartName', label: 'Causal Part Name', type: 'text' },
     { key: 'causalPartQty', label: 'Causal Part Quantity', type: 'text' },
-    // Signatures (currently hidden in UI)
-    { key: 'preparedByName', label: 'Prepared By Name', optional: true },
-    { key: 'acknowledgedByName', label: 'Acknowledged By Name', optional: true },
-    { key: 'warrantyRepairName', label: 'Warranty Repair Name', optional: true },
+    { key: 'deliverTo', label: 'Deliver To', type: 'text' },
+    { key: 'partSupplyMethod', label: 'Part Supply Method', type: 'select' },
+    { key: 'affectedParts', label: 'Affected Parts', type: 'text' },
+    // Illustration
+    { key: 'illustrationUrl', label: 'Illustration Image', type: 'file' },
+    // Signatures
+    { key: 'preparedByName', label: 'Prepared By Name', type: 'text' },
+    { key: 'preparedBySignature', label: 'Prepared By Signature', type: 'signature' },
+    { key: 'acknowledgedByName', label: 'Acknowledged By Name', type: 'text' },
+    { key: 'acknowledgedBySignature', label: 'Acknowledged By Signature', type: 'signature' },
+    { key: 'warrantyRepairName', label: 'Warranty Repair Name', type: 'text' },
+    { key: 'warrantyRepairSignature', label: 'Warranty Repair Signature', type: 'signature' },
     { key: 'branch', label: 'Branch', type: 'select' },
-    { key: 'email', label: 'Email Address', type: 'text' },
-    // Optional fields
-    { key: 'dealerPhone', label: 'Dealer Phone', optional: true },
-    { key: 'customerPhone', label: 'Customer Phone', optional: true },
-    { key: 'color', label: 'Color', optional: true },
-    { key: 'wrcNo', label: 'WRC No.', optional: true },
-    { key: 'jobOrderNo', label: 'Job Order No.', optional: true },
-    { key: 'preparedDate', label: 'Prepared Date', optional: true },
-    { key: 'suggestionRemarks', label: 'Suggestion/Remarks', optional: true },
-    { key: 'deliverTo', label: 'Deliver To', optional: true },
-    { key: 'partSupplyMethod', label: 'Part Supply Method', optional: true },
-    { key: 'affectedParts', label: 'Affected Parts', optional: true },
-    { key: 'illustrationFile', label: 'Illustration Image', optional: true },
-    { key: 'preparedBySig', label: 'Prepared By Signature', optional: true },
-    { key: 'acknowledgedBySig', label: 'Acknowledged By Signature', optional: true },
-    { key: 'warrantyRepairSig', label: 'Warranty Repair Signature', optional: true }
+    { key: 'email', label: 'Email Address', type: 'text' }
   ]
 };
 
@@ -557,6 +556,29 @@ function getSheet_(name, headers) {
     }
   }
   return sheet;
+}
+
+/**
+ * Normalize gender values to single letter format (M/F) for consistent storage.
+ * 
+ * @param {string} value - Raw gender value from form (e.g., "Male", "Female", "M", "F")
+ * @return {string} Normalized single-letter value: "M", "F", or empty string
+ */
+function normalizeGender_(value) {
+  if (!value) return '';
+  
+  var normalized = String(value).trim().toUpperCase();
+  
+  // Map common variations to M or F
+  if (normalized === 'M' || normalized === 'MALE') {
+    return 'M';
+  }
+  if (normalized === 'F' || normalized === 'FEMALE') {
+    return 'F';
+  }
+  
+  // If not recognized, return empty (will fail validation if gender is required)
+  return '';
 }
 
 /**
@@ -849,6 +871,9 @@ function submitWRC(formData) {
     // Use derived name if available, otherwise fall back to submitted value (backward compatibility)
     var finalDealerName = derivedDealerName || formData.dealerName || '';
 
+    // ---- Normalize gender to M/F ----
+    var normalizedGender = normalizeGender_(formData.gender);
+
     // ---- Build field map ----
     var fieldMap = {
       'WRC No.':                   formData.wrcNo,
@@ -863,7 +888,7 @@ function submitWRC(formData) {
       'DEALER NAME':               finalDealerName,
       'Customer ADDRESS':          formData.customerAddress || '',
       'AGE':                       formData.age || '',
-      'GENDER':                    formData.gender || '',
+      'GENDER':                    normalizedGender,
       'Dealer Code':               String(formData.dealerCode).trim(),
       'BRANCH':                    formData.branch,
       'EMAIL':                     formData.email,
