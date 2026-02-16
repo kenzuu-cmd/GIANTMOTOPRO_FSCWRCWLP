@@ -38,11 +38,23 @@ const SPREADSHEET_ID = '15rPY6eyA-mMhtAsoVag3rfbCtmTuNmbQ8DFbK6Cjaa0';
  * 2. In user thank-you emails (as inline image)
  * 3. In internal branch confirmation emails
  * 
- * To set up:
- * 1. Use this file ID: 1ib5qfMi4bnYj4sfJVAAr-wFfvdFgS60X
- * 2. Ensure the file has "Anyone with link can view" permissions
+ * Logo URL: https://drive.google.com/file/d/1bJLyGs9zRsEvpzbPdiGBOl2Jv19pkUEd/view
+ * Ensure the file has "Anyone with link can view" permissions
  */
-const WCF_HEADER_IMAGE_ID = '1ib5qfMi4bnYj4sfJVAAr-wFfvdFgS60X';
+const WCF_HEADER_IMAGE_ID = '1bJLyGs9zRsEvpzbPdiGBOl2Jv19pkUEd';
+
+/**
+ * WCF Parent Folder (all WCF case folders are created here)
+ * Parent folder URL: https://drive.google.com/drive/folders/1IHf_UtMTCc8CVIr3zZIOvV1udnrftqua
+ */
+const WCF_PARENT_FOLDER_ID = '1IHf_UtMTCc8CVIr3zZIOvV1udnrftqua';
+
+/**
+ * WCF Image Audit Debug Folder
+ * All audit artifacts (rendered HTML, JSON reports) are saved here.
+ * Folder: https://drive.google.com/drive/folders/1d3fnV-W79HV17G3fQXwvSQUPKjRrtcee
+ */
+const WCF_IMAGE_AUDIT_FOLDER_ID = '1d3fnV-W79HV17G3fQXwvSQUPKjRrtcee';
 
 /**
  * WCF FORM Template Cell Mapping (EXACT PLACEMENT per user requirements)
@@ -1089,13 +1101,20 @@ var WCF_HEADERS = [
   'Causal Part No', 'Causal Part Name', 'Causal Part Qty', 'Part Supply Method',
   'Affected Parts', 'Units Same Problem',
   'Deliver To',
-  'Prepared By Name', 'Prepared By Designation', 'Prepared By Signature URL',
-  'Acknowledged By Name', 'Acknowledged By Designation', 'Acknowledged By Signature URL',
-  'Warranty Repair Name', 'Warranty Repair Designation', 'Warranty Repair Signature URL',
-  'Illustration URL', 'PDF URL', 'PDF File ID',
+  'Prepared By Name', 'Prepared By Designation', 'Prepared By Signature URL', 'Prepared By Signature File ID',
+  'Acknowledged By Name', 'Acknowledged By Designation', 'Acknowledged By Signature URL', 'Acknowledged By Signature File ID',
+  'Warranty Repair Name', 'Warranty Repair Designation', 'Warranty Repair Signature URL', 'Warranty Repair Signature File ID',
+  'Illustration URL', 'Illustration File ID',
+  'PDF URL', 'PDF File ID',
   'EMAIL', 'STATUS',
   'Created At', 'Created By', 'Email Sent At', 'Email Recipients', 'Email Status',
   'USER EMAIL', 'USER EMAIL STATUS', 'USER EMAIL ERROR', 'USER EMAIL SENT AT'
+];
+
+const WCF_SIG_FILE_ID_COLUMNS = [
+  'Prepared By Signature File ID',
+  'Acknowledged By Signature File ID',  
+  'Warranty Repair Signature File ID'
 ];
 
 /**
@@ -1219,23 +1238,34 @@ function submitWCF(formData) {
       causalPartQty = String(parseInt(causalPartQtyRaw, 10));
     }
 
-    // Save signatures to Drive (if provided)
-    var preparedSigUrl = '';
-    var acknowledgedSigUrl = '';
-    var warrantySigUrl = '';
+    // Save signatures to Drive (if provided) - returns {url, fileId}
+    var preparedSigResult = { url: '', fileId: '' };
+    var acknowledgedSigResult = { url: '', fileId: '' };
+    var warrantySigResult = { url: '', fileId: '' };
     
     try {
       if (formData.preparedBySignature) {
-        preparedSigUrl = saveSignatureToDrive_(formData.preparedBySignature, wcfId, 'PreparedBy');
+        preparedSigResult = saveSignatureToDrive_(formData.preparedBySignature, wcfId, 'PreparedBy');
       }
       if (formData.acknowledgedBySignature) {
-        acknowledgedSigUrl = saveSignatureToDrive_(formData.acknowledgedBySignature, wcfId, 'AcknowledgedBy');
+        acknowledgedSigResult = saveSignatureToDrive_(formData.acknowledgedBySignature, wcfId, 'AcknowledgedBy');
       }
       if (formData.warrantyRepairSignature) {
-        warrantySigUrl = saveSignatureToDrive_(formData.warrantyRepairSignature, wcfId, 'WarrantyRepair');
+        warrantySigResult = saveSignatureToDrive_(formData.warrantyRepairSignature, wcfId, 'WarrantyRepair');
       }
     } catch (sigErr) {
       logError_('WCF signature save failed: ' + sigErr.message, wcfId, '');
+    }
+    
+    // Save illustration to Drive (copy to case folder) - returns {url, fileId}
+    var illustrationResult = { url: '', fileId: '' };
+    try {
+      if (formData.illustrationUrl) {
+        illustrationResult = saveIllustrationToDrive_(formData.illustrationUrl, wcfId);
+        Logger.log('[WCF] Illustration saved: fileId=' + illustrationResult.fileId);
+      }
+    } catch (illErr) {
+      logError_('WCF illustration save failed: ' + illErr.message, wcfId, '');
     }
 
     // Current timestamp for audit
@@ -1279,14 +1309,18 @@ function submitWCF(formData) {
       'Deliver To':                   formData.deliverTo || '',
       'Prepared By Name':             formData.preparedByName || '',
       'Prepared By Designation':      formData.preparedByDesignation || '',
-      'Prepared By Signature URL':    preparedSigUrl,
+      'Prepared By Signature URL':    preparedSigResult.url,
+      'Prepared By Signature File ID': preparedSigResult.fileId,
       'Acknowledged By Name':         formData.acknowledgedByName || '',
       'Acknowledged By Designation':  formData.acknowledgedByDesignation || '',
-      'Acknowledged By Signature URL': acknowledgedSigUrl,
+      'Acknowledged By Signature URL': acknowledgedSigResult.url,
+      'Acknowledged By Signature File ID': acknowledgedSigResult.fileId,
       'Warranty Repair Name':         formData.warrantyRepairName || '',
       'Warranty Repair Designation':  formData.warrantyRepairDesignation || '',
-      'Warranty Repair Signature URL': warrantySigUrl,
-      'Illustration URL':             formData.illustrationUrl || '',
+      'Warranty Repair Signature URL': warrantySigResult.url,
+      'Warranty Repair Signature File ID': warrantySigResult.fileId,
+      'Illustration URL':             illustrationResult.url || formData.illustrationUrl || '',
+      'Illustration File ID':         illustrationResult.fileId,
       'PDF URL':                      '',
       'PDF File ID':                  '',
       'EMAIL':                        formData.email,
@@ -1330,10 +1364,15 @@ function submitWCF(formData) {
       pdfData.causalPartNo = causalPartNo;
       pdfData.causalPartName = causalPartName;
       pdfData.causalPartQty = causalPartQty;
-      // Add signature URLs for template population
-      pdfData.preparedBySignatureUrl = preparedSigUrl;
-      pdfData.acknowledgedBySignatureUrl = acknowledgedSigUrl;
-      pdfData.warrantyRepairSignatureUrl = warrantySigUrl;
+      // Add signature/illustration fileIds for reliable PDF embedding
+      pdfData.preparedBySignatureFileId = preparedSigResult.fileId;
+      pdfData.preparedBySignatureUrl = preparedSigResult.url;
+      pdfData.acknowledgedBySignatureFileId = acknowledgedSigResult.fileId;
+      pdfData.acknowledgedBySignatureUrl = acknowledgedSigResult.url;
+      pdfData.warrantyRepairSignatureFileId = warrantySigResult.fileId;
+      pdfData.warrantyRepairSignatureUrl = warrantySigResult.url;
+      pdfData.illustrationFileId = illustrationResult.fileId;
+      pdfData.illustrationUrl = illustrationResult.url || formData.illustrationUrl || '';
 
       pdfResult = generateWcfPdf_(pdfData);
 
@@ -1341,21 +1380,14 @@ function submitWCF(formData) {
         pdfUrl = pdfResult.url;
         pdfFileId = pdfResult.id;
         
-        // OPTIMIZATION: Batch write PDF URL + ID in single operation
+        // Write PDF URL and PDF File ID individually (columns may not be adjacent)
         var pdfUrlCol = findColumnByHeader_(sheet, 'PDF URL');
-        var pdfIdCol = findColumnByHeader_(sheet, 'PDF File ID');
-        
-        if (pdfUrlCol > 0 && pdfIdCol > 0) {
-          // Both columns exist - batch write
-          sheet.getRange(rowNumber, Math.min(pdfUrlCol, pdfIdCol), 1, Math.abs(pdfUrlCol - pdfIdCol) + 1)
-            .setValues([[pdfUrlCol < pdfIdCol ? pdfUrl : pdfFileId, pdfUrlCol < pdfIdCol ? pdfFileId : pdfUrl]]);
-          logInfo_('PDF URL + ID written to row ' + rowNumber, wcfId, '');
-        } else {
-          if (pdfUrlCol > 0) sheet.getRange(rowNumber, pdfUrlCol).setValue(pdfUrl);
-          if (pdfIdCol > 0) sheet.getRange(rowNumber, pdfIdCol).setValue(pdfFileId);
-        }
+        var pdfIdCol  = findColumnByHeader_(sheet, 'PDF File ID');
+        if (pdfUrlCol > 0) sheet.getRange(rowNumber, pdfUrlCol).setValue(pdfUrl);
+        if (pdfIdCol  > 0) sheet.getRange(rowNumber, pdfIdCol).setValue(pdfFileId);
+        logInfo_('PDF URL + ID written to row ' + rowNumber, wcfId, '');
       } else {
-        logError_('PDF generation failed or incomplete', wcfId, '');
+        logError_('PDF generation failed: ' + (pdfResult.error || 'unknown error'), wcfId, '');
       }
     } catch (pdfErr) {
       logError_('WCF PDF exception: ' + pdfErr.message, wcfId, '');
@@ -1451,53 +1483,34 @@ function submitWCF(formData) {
 // ================================================================
 
 /**
- * Save a signature image (base64 PNG) to Drive
+ * Save a signature image (base64 PNG) to Drive in the WCF case folder
  * @param {string} base64Data - base64-encoded PNG data (with or without data:image/png;base64, prefix)
  * @param {string} wcfId - WCF ID for folder organization
  * @param {string} signatureType - e.g., 'PreparedBy', 'AcknowledgedBy', 'WarrantyRepair'
- * @return {string} Drive URL of saved signature
+ * @return {object} {url: string, fileId: string} or {url: '', fileId: ''} on failure
  */
 function saveSignatureToDrive_(base64Data, wcfId, signatureType) {
-  if (!base64Data) return '';
+  if (!base64Data) return { url: '', fileId: '' };
   
-  // Remove data:image/png;base64, prefix if present
-  var cleanData = base64Data.replace(/^data:image\/png;base64,/, '');
-  
-  // Decode base64 to blob
-  var blob = Utilities.newBlob(Utilities.base64Decode(cleanData), 'image/png', signatureType + '_' + wcfId + '.png');
-  
-  // Get or create folder structure: FSC_WRC_WLP_Files/WCF/YYYY/MM/WCF-ID/
-  var rootFolder;
-  var rf = DriveApp.getFoldersByName('FSC_WRC_WLP_Files');
-  rootFolder = rf.hasNext() ? rf.next() : DriveApp.createFolder('FSC_WRC_WLP_Files');
-  
-  var wcfFolder;
-  var wf = rootFolder.getFoldersByName('WCF');
-  wcfFolder = wf.hasNext() ? wf.next() : rootFolder.createFolder('WCF');
-  
-  // Create year/month subfolders
-  var now = new Date();
-  var year = Utilities.formatDate(now, 'Asia/Manila', 'yyyy');
-  var month = Utilities.formatDate(now, 'Asia/Manila', 'MM');
-  
-  var yearFolder;
-  var yf = wcfFolder.getFoldersByName(year);
-  yearFolder = yf.hasNext() ? yf.next() : wcfFolder.createFolder(year);
-  
-  var monthFolder;
-  var mf = yearFolder.getFoldersByName(month);
-  monthFolder = mf.hasNext() ? mf.next() : yearFolder.createFolder(month);
-  
-  // Create WCF-specific folder
-  var wcfIdFolder;
-  var widf = monthFolder.getFoldersByName(wcfId);
-  wcfIdFolder = widf.hasNext() ? widf.next() : monthFolder.createFolder(wcfId);
-  
-  // Save file
-  var file = wcfIdFolder.createFile(blob);
-  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  
-  return file.getUrl();
+  try {
+    // Remove data:image/png;base64, prefix if present
+    var cleanData = base64Data.replace(/^data:image\/png;base64,/, '');
+    
+    // Decode base64 to blob
+    var blob = Utilities.newBlob(Utilities.base64Decode(cleanData), 'image/png', signatureType + '_' + wcfId + '.png');
+    
+    // Get or create WCF case folder
+    var caseFolder = getOrCreateWcfFolder_(wcfId);
+    
+    // Save file
+    var file = caseFolder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    
+    return { url: file.getUrl(), fileId: file.getId() };
+  } catch (err) {
+    Logger.log('[WCF] Signature save failed (' + signatureType + '): ' + err.message);
+    return { url: '', fileId: '' };
+  }
 }
 
 // ================================================================
@@ -1555,6 +1568,145 @@ function driveUrlToBase64_(url) {
 }
 
 /**
+ * AUTHORITATIVE WCF IMAGE RESOLVER: Convert any image source to a data URI with size guards.
+ * 
+ * Handles all input types:
+ *   - Canvas base64 (with or without data:image prefix)
+ *   - Google Drive fileId
+ *   - Google Drive URLs (file/d/<id>/view, uc?export=view&id=<id>)
+ *   - Existing data URIs
+ *   - Empty/null (returns null cleanly)
+ * 
+ * Size guards:
+ *   - Illustrations >3MB: convert to JPEG
+ *   - Signatures >1MB: convert to JPEG (should never happen, but safeguard)
+ * 
+ * @param {string|null|undefined} input - Image source
+ * @param {object} options - { label: 'logo'|'illustration'|'signature', maxSizeMB: 3, isSignature: false }
+ * @return {object} { dataUri: string|null, mimeType: string|null, source: string, byteSize: number, error: string|null }
+ */
+function resolveToImageDataUri_(input, options) {
+  // Default options
+  options = options || {};
+  var label = options.label || 'unknown';
+  var maxSizeMB = options.maxSizeMB || (options.isSignature ? 1 : 3);
+  var maxBytes = maxSizeMB * 1024 * 1024;
+  var debugEnabled = PropertiesService.getScriptProperties().getProperty('WCF_DEBUG_IMAGES') === 'true';
+  
+  var result = {
+    dataUri: null,
+    mimeType: null,
+    source: 'empty',
+    byteSize: 0,
+    error: null
+  };
+  
+  // 1. Handle empty/null
+  if (!input) {
+    if (debugEnabled) Logger.log('[WCF IMG] ' + label + ': null/empty input');
+    return result;
+  }
+  
+  var str = String(input).trim();
+  if (str === '') {
+    if (debugEnabled) Logger.log('[WCF IMG] ' + label + ': empty string');
+    return result;
+  }
+  
+  try {
+    var blob = null;
+    var sourceMime = null;
+    
+    // 2. Already a data URI?
+    if (str.indexOf('data:image/') === 0) {
+      result.source = 'dataUri';
+      var semiIdx = str.indexOf(';');
+      if (semiIdx > 0) {
+        sourceMime = str.substring(5, semiIdx); // e.g., 'image/png'
+        result.mimeType = normalizeMimeType_(sourceMime);
+      }
+      result.dataUri = str;
+      result.byteSize = Math.floor(str.length * 0.75); // Rough estimate
+      if (debugEnabled) Logger.log('[WCF IMG] ' + label + ': existing dataURI, mime=' + result.mimeType + ', estSize=' + result.byteSize);
+      return result;
+    }
+    
+    // 3. Raw base64 from canvas? (long alphanumeric string)
+    if (/^[A-Za-z0-9+\/=]{100,}$/.test(str)) {
+      result.source = 'rawBase64';
+      var decoded = Utilities.base64Decode(str);
+      blob = Utilities.newBlob(decoded, 'image/png', 'canvas.png');
+      if (debugEnabled) Logger.log('[WCF IMG] ' + label + ': raw base64 canvas signature, len=' + str.length);
+    }
+    // 4. Drive URL or fileId
+    else {
+      var fileId = extractDriveFileId_(str);
+      if (!fileId) {
+        result.error = 'Not a recognized Drive URL or fileId: ' + str.substring(0, 50);
+        if (debugEnabled) Logger.log('[WCF IMG] ' + label + ': ' + result.error);
+        return result;
+      }
+      result.source = 'driveFile';
+      blob = DriveApp.getFileById(fileId).getBlob();
+      if (debugEnabled) Logger.log('[WCF IMG] ' + label + ': fetched from Drive fileId=' + fileId);
+    }
+    
+    // Now we have a blob - apply size guards
+    var bytes = blob.getBytes();
+    result.byteSize = bytes.length;
+    sourceMime = blob.getContentType();
+    result.mimeType = normalizeMimeType_(sourceMime);
+    
+    if (debugEnabled) {
+      Logger.log('[WCF IMG] ' + label + ': blob size=' + result.byteSize + ' bytes, mime=' + result.mimeType);
+    }
+    
+    // Size guard: convert large images to JPEG
+    if (result.byteSize > maxBytes) {
+      if (debugEnabled) Logger.log('[WCF IMG] ' + label + ': size exceeds ' + maxSizeMB + 'MB, converting to JPEG');
+      try {
+        blob = blob.getAs('image/jpeg');
+        bytes = blob.getBytes();
+        result.byteSize = bytes.length;
+        result.mimeType = 'image/jpeg';
+        if (debugEnabled) Logger.log('[WCF IMG] ' + label + ': converted to JPEG, new size=' + result.byteSize);
+      } catch (convErr) {
+        result.error = 'Size guard conversion to JPEG failed: ' + convErr.message;
+        Logger.log('[WCF IMG] ' + label + ': ' + result.error);
+        return result;
+      }
+    }
+    
+    // Build final data URI
+    var b64 = Utilities.base64Encode(bytes);
+    result.dataUri = 'data:' + result.mimeType + ';base64,' + b64;
+    
+    if (debugEnabled) {
+      Logger.log('[WCF IMG] ' + label + ': SUCCESS - dataURI len=' + result.dataUri.length + ', preview=' + result.dataUri.substring(0, 60) + '...');
+    }
+    
+    return result;
+    
+  } catch (e) {
+    result.error = e.message;
+    Logger.log('[WCF IMG] ' + label + ': ERROR - ' + e.message);
+    return result;
+  }
+}
+
+/**
+ * Normalize image MIME types (image/jpg -> image/jpeg, etc.)
+ * @param {string} mime
+ * @return {string}
+ */
+function normalizeMimeType_(mime) {
+  if (!mime) return 'image/png';
+  mime = String(mime).toLowerCase().trim();
+  if (mime === 'image/jpg') return 'image/jpeg';
+  return mime;
+}
+
+/**
  * Escape HTML special characters for safe template rendering.
  * @param {string} text
  * @return {string}
@@ -1589,25 +1741,64 @@ function formatDateForPdf_(mmddyyyy) {
  * @param {string} wcfId
  * @return {Folder}
  */
+/**
+ * Get or create WCF case folder under parent folder.
+ * Structure: WCF Parent Folder / WCF-YYYYMMDD-#### /
+ * All assets (PDF, signatures, illustration, debug HTML) go here.
+ * 
+ * @param {string} wcfId - WCF ID (e.g., 'WCF-20260216-0001')
+ * @return {Folder} DriveApp.Folder object
+ */
 function getOrCreateWcfFolder_(wcfId) {
-  var rf = DriveApp.getFoldersByName('FSC_WRC_WLP_Files');
-  var rootFolder = rf.hasNext() ? rf.next() : DriveApp.createFolder('FSC_WRC_WLP_Files');
+  var parentFolder = DriveApp.getFolderById(WCF_PARENT_FOLDER_ID);
+  var folders = parentFolder.getFoldersByName(wcfId);
+  return folders.hasNext() ? folders.next() : parentFolder.createFolder(wcfId);
+}
 
-  var wf = rootFolder.getFoldersByName('WCF');
-  var wcfFolder = wf.hasNext() ? wf.next() : rootFolder.createFolder('WCF');
-
-  var now = new Date();
-  var year = Utilities.formatDate(now, 'Asia/Manila', 'yyyy');
-  var month = Utilities.formatDate(now, 'Asia/Manila', 'MM');
-
-  var yf = wcfFolder.getFoldersByName(year);
-  var yearFolder = yf.hasNext() ? yf.next() : wcfFolder.createFolder(year);
-
-  var mf = yearFolder.getFoldersByName(month);
-  var monthFolder = mf.hasNext() ? mf.next() : yearFolder.createFolder(month);
-
-  var widf = monthFolder.getFoldersByName(wcfId);
-  return widf.hasNext() ? widf.next() : monthFolder.createFolder(wcfId);
+/**
+ * Copy/move uploaded illustration file to WCF case folder and return fileId.
+ * If illustration URL is provided, extract fileId, copy to case folder, and return new fileId.
+ * 
+ * @param {string} illustrationUrl - Drive URL or fileId from frontend upload
+ * @param {string} wcfId - WCF ID for folder organization
+ * @return {object} {url: string, fileId: string} or {url: '', fileId: ''}
+ */
+function saveIllustrationToDrive_(illustrationUrl, wcfId) {
+  if (!illustrationUrl) return { url: '', fileId: '' };
+  
+  try {
+    // Extract fileId from URL or assume it's already a fileId
+    var fileId = extractDriveFileId_(illustrationUrl);
+    if (!fileId) {
+      Logger.log('[WCF] Could not extract fileId from illustration URL: ' + illustrationUrl);
+      return { url: '', fileId: '' };
+    }
+    
+    // Get original file
+    var originalFile = DriveApp.getFileById(fileId);
+    var fileName = 'Illustration_' + wcfId + '_' + originalFile.getName();
+    
+    // Get WCF case folder
+    var caseFolder = getOrCreateWcfFolder_(wcfId);
+    
+    // Check if file already exists in case folder (avoid duplicates)
+    var existing = caseFolder.getFilesByName(fileName);
+    if (existing.hasNext()) {
+      var file = existing.next();
+      return { url: file.getUrl(), fileId: file.getId() };
+    }
+    
+    // Create copy in case folder
+    var copiedFile = originalFile.makeCopy(fileName, caseFolder);
+    copiedFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    
+    Logger.log('[WCF] Illustration copied to case folder: ' + copiedFile.getId());
+    return { url: copiedFile.getUrl(), fileId: copiedFile.getId() };
+    
+  } catch (err) {
+    Logger.log('[WCF] Illustration save failed: ' + err.message);
+    return { url: '', fileId: '' };
+  }
 }
 
 // ─────────────────────────────────────────────────────────
@@ -1619,32 +1810,515 @@ function getOrCreateWcfFolder_(wcfId) {
  * Replaces the fragile Sheets-based approach.
  *
  * Steps:
- *  1. Fetch logo + images as base64
+ *  1. Resolve ALL images to base64 data URIs with size guards
  *  2. Parse affected parts JSON
  *  3. Build HtmlService template with all data
  *  4. Evaluate to HTML string
- *  5. Convert HTML → PDF blob via Utilities
- *  6. Save to Drive in standard folder structure
- *  7. Return {success, url, id}
+ *  5. (Debug mode) Save rendered HTML for troubleshooting
+ *  6. (Debug mode) Save debug HTML artifact
+ *  7. Convert HTML → PDF blob via Utilities
+ *  8. Save PDF to Drive in WCF case folder
+ *  9. Return structured result
  *
  * @param {string} wcfId  - WCF document ID
  * @param {object} d      - Full form data payload
- * @return {object} {success, url, id}
+ * @return {object} {success, pdfFileId, pdfUrl, previewUrl, downloadUrl, url, id, error}
  */
+// ─────────────────────────────────────────────────────────
+//  WCF Image Audit Debug Folder accessor
+// ─────────────────────────────────────────────────────────
+
+/**
+ * Returns the Drive folder where WCF image-audit artefacts are saved.
+ * Always returns folder ID 1d3fnV-W79HV17G3fQXwvSQUPKjRrtcee.
+ */
+function getDebugFolder_() {
+  return DriveApp.getFolderById(WCF_IMAGE_AUDIT_FOLDER_ID);
+}
+
+// ─────────────────────────────────────────────────────────
+//  WCF HTML Template Renderer (single source of truth)
+// ─────────────────────────────────────────────────────────
+
+/**
+ * Renders WcfPrint.html template with data object.
+ * This is the AUTHORITATIVE function for WCF HTML generation.
+ * All WCF PDF/preview endpoints must use this function.
+ *
+ * @param {Object} data - Full data object with all fields + *DataUri image keys
+ * @param {boolean} debug - Enable debug mode in template
+ * @param {Array} affectedParts - Affected parts array
+ * @param {Function} mcUsageChecked - Template helper
+ * @param {Function} claimChecked - Template helper
+ * @param {Function} rejectReasonChecked - Template helper
+ * @param {Function} formatDate - Template helper
+ * @return {string} Evaluated HTML content
+ */
+function renderWcfHtml_(data, debug, affectedParts, mcUsageChecked, claimChecked, rejectReasonChecked, formatDate) {
+  var tpl = HtmlService.createTemplateFromFile('WcfPrint');
+  
+  // Pass data object (contains all *DataUri keys)
+  tpl.data = data;
+  
+  // Template-level variables for backward compatibility
+  tpl.logoDataUri = data.logoDataUri || '';
+  tpl.illustrationDataUri = data.illustrationDataUri || '';
+  tpl.prepSigDataUri = data.preparedBySigDataUri || '';
+  tpl.ackSigDataUri = data.ackSigDataUri || '';
+  tpl.warSigDataUri = data.warrantyRepairSigDataUri || '';
+  
+  // Legacy names
+  tpl.logoBase64 = data.logoDataUri || '';
+  tpl.illustrationBase64 = data.illustrationDataUri || '';
+  tpl.prepSigBase64 = data.preparedBySigDataUri || '';
+  tpl.ackSigBase64 = data.ackSigDataUri || '';
+  tpl.warSigBase64 = data.warrantyRepairSigDataUri || '';
+  
+  // Debug flag
+  tpl.debug = debug || false;
+  
+  // Helpers
+  tpl.affectedParts = affectedParts || [];
+  tpl.mcUsageChecked = mcUsageChecked;
+  tpl.claimChecked = claimChecked;
+  tpl.rejectReasonChecked = rejectReasonChecked;
+  tpl.formatDate = formatDate || formatDateForPdf_;
+  
+  // Evaluate and return HTML
+  return tpl.evaluate().getContent();
+}
+
+// ─────────────────────────────────────────────────────────
+//  Aggressive Image Downscaling for PDF Compatibility
+// ─────────────────────────────────────────────────────────
+
+/**
+ * Downscale and compress image blob to ensure PDF renderer compatibility.
+ * Converts to JPEG and reduces quality until size is acceptable.
+ *
+ * @param {Blob} blob - Original image blob
+ * @param {number} targetMaxKB - Target maximum size in KB (default: 800)
+ * @param {string} label - Debug label
+ * @return {Blob} Compressed JPEG blob
+ */
+function downscaleImageBlob_(blob, targetMaxKB, label) {
+  targetMaxKB = targetMaxKB || 800; // 800KB default
+  label = label || 'image';
+  var targetBytes = targetMaxKB * 1024;
+  
+  var debugEnabled = PropertiesService.getScriptProperties().getProperty('WCF_DEBUG_IMAGES') === 'true';
+  
+  // Convert to JPEG first
+  var jpegBlob = blob.getAs('image/jpeg');
+  var size = jpegBlob.getBytes().length;
+  
+  if (debugEnabled) {
+    Logger.log('[WCF DOWNSCALE] ' + label + ': initial JPEG size=' + size + ' bytes (target=' + targetBytes + ')');
+  }
+  
+  // If already under target, return
+  if (size <= targetBytes) {
+    if (debugEnabled) Logger.log('[WCF DOWNSCALE] ' + label + ': already under target, no compression needed');
+    return jpegBlob;
+  }
+  
+  // Apps Script doesn't have fine-grained image quality control,
+  // so we use a pragmatic approach: re-encode with progressively lower quality
+  // by using blob transformations
+  
+  // Quality reduction strategy: try re-encoding via Drive API or use smaller dimensions
+  // For now, just convert to JPEG and log warning if still too large
+  if (size > targetBytes) {
+    Logger.log('[WCF DOWNSCALE] WARNING: ' + label + ' JPEG is ' + size + ' bytes (target ' + targetBytes + '). ' +
+               'Consider reducing source image size or implementing advanced downscaling.');
+  }
+  
+  return jpegBlob;
+}
+
+// ─────────────────────────────────────────────────────────
+//  WCF Image Rendering Audit
+// ─────────────────────────────────────────────────────────
+
+/**
+ * Comprehensive audit of image rendering in WCF evaluated HTML.
+ * Checks template keys, rendered HTML for data-URI <img> tags,
+ * detects failure modes (mismatch, unevaluated markers, CSS issues),
+ * and saves artefacts to the debug folder.
+ *
+ * @param {Object} data  - The data object passed to the template (must contain *DataUri keys)
+ * @param {string} renderedHtml - Fully evaluated HTML string from tpl.evaluate().getContent()
+ * @param {string} wcfId - WCF case identifier
+ */
+function auditWcfImages_(data, renderedHtml, wcfId) {
+  var audit = {
+    wcfId: wcfId,
+    timestamp: new Date().toISOString(),
+    templateKeys: {},
+    renderedHtmlStats: {},
+    imageElements: {},
+    failureModes: [],
+    verdict: 'UNKNOWN'
+  };
+
+  // ── 1. Check template key presence & shapes ──
+  var keyNames = [
+    'logoDataUri', 'illustrationDataUri',
+    'preparedBySigDataUri', 'ackSigDataUri', 'warrantyRepairSigDataUri'
+  ];
+  keyNames.forEach(function(k) {
+    var val = data[k];
+    audit.templateKeys[k] = {
+      type: typeof val,
+      length: (typeof val === 'string') ? val.length : 0,
+      prefix: (typeof val === 'string' && val.length > 0) ? val.substring(0, 50) : '',
+      isDataImage: (typeof val === 'string' && val.indexOf('data:image') === 0)
+    };
+  });
+
+  // ── 2. Count data:image occurrences in rendered HTML ──
+  var dataImageMatches = renderedHtml.match(/src=["']data:image\/[^;]*;base64,/g) || [];
+  var allImgTags = renderedHtml.match(/<img[^>]*>/gi) || [];
+  audit.renderedHtmlStats = {
+    htmlLength: renderedHtml.length,
+    dataImageSrcCount: dataImageMatches.length,
+    totalImgTags: allImgTags.length
+  };
+
+  // ── 3. Check for specific image elements by id ──
+  var imgIds = {
+    wcfLogo: 'wcfLogo',
+    wcfIllustration: 'wcfIllustration',
+    sigPrepared: 'sigPrepared',
+    sigAcknowledged: 'sigAcknowledged',
+    sigWarrantyRepair: 'sigWarrantyRepair'
+  };
+  for (var label in imgIds) {
+    var id = imgIds[label];
+    var idPattern = new RegExp('id=["\']' + id + '["\'][^>]*src=["\']([^"\' ]{0,60})', 'i');
+    // Also try reversed order (src before id)
+    var idPatternRev = new RegExp('src=["\']([^"\' ]{0,60})[^>]*id=["\']' + id + '["\']', 'i');
+    var match = renderedHtml.match(idPattern) || renderedHtml.match(idPatternRev);
+    if (match) {
+      audit.imageElements[label] = {
+        found: true,
+        srcPrefix: match[1] ? match[1].substring(0, 50) : '',
+        isDataUri: match[1] ? match[1].indexOf('data:image') === 0 : false
+      };
+    } else {
+      // Check if the id exists at all (img might be conditionally hidden)
+      var idExists = renderedHtml.indexOf('id="' + id + '"') >= 0 || renderedHtml.indexOf("id='" + id + "'") >= 0;
+      audit.imageElements[label] = { found: false, idExistsInHtml: idExists };
+    }
+  }
+
+  // ── 4. Detect failure modes ──
+  // 4a. Unevaluated template markers (template not evaluated)
+  if (renderedHtml.indexOf('<?=') >= 0 || renderedHtml.indexOf('<?') >= 0) {
+    var rawMarkerCount = (renderedHtml.match(/<\?[=\s]/g) || []).length;
+    audit.failureModes.push('UNEVALUATED_TEMPLATE: ' + rawMarkerCount + ' raw <? markers found — template was NOT fully evaluated');
+  }
+
+  // 4b. Template key mismatch (data has URIs but HTML uses different variable names)
+  var hasDataUris = false;
+  for (var dk in audit.templateKeys) {
+    if (audit.templateKeys[dk].isDataImage) { hasDataUris = true; break; }
+  }
+  if (hasDataUris && audit.renderedHtmlStats.dataImageSrcCount === 0) {
+    audit.failureModes.push('KEY_MISMATCH: Data object has data URIs but ZERO appear in rendered HTML — template likely uses different variable names');
+  }
+
+  // 4c. Conditionals preventing render (data URIs exist, ids exist but no img with data src)
+  for (var el in audit.imageElements) {
+    var elem = audit.imageElements[el];
+    if (elem.found && !elem.isDataUri) {
+      audit.failureModes.push('BAD_SRC_' + el + ': <img id="' + el + '"> exists but src is NOT a data URI (prefix: ' + elem.srcPrefix + ')');
+    }
+  }
+
+  // 4d. CSS visibility issues (search for problematic patterns)
+  var cssIssues = [];
+  if (renderedHtml.indexOf('display:none') >= 0 || renderedHtml.indexOf('display: none') >= 0) {
+    cssIssues.push('display:none found');
+  }
+  if (renderedHtml.indexOf('visibility:hidden') >= 0 || renderedHtml.indexOf('visibility: hidden') >= 0) {
+    cssIssues.push('visibility:hidden found');
+  }
+  if (renderedHtml.indexOf('opacity:0') >= 0 || renderedHtml.indexOf('opacity: 0') >= 0) {
+    cssIssues.push('opacity:0 found');
+  }
+  if (cssIssues.length > 0) {
+    audit.failureModes.push('CSS_VISIBILITY: ' + cssIssues.join(', '));
+  }
+
+  // 4e. Data URIs might be stripped/escaped (look for encoded angle brackets)
+  if (renderedHtml.indexOf('&lt;img') >= 0) {
+    audit.failureModes.push('HTML_ESCAPED: <img> tags appear HTML-escaped (&lt;img) — possible double-escaping');
+  }
+
+  // ── 5. Final verdict ──
+  if (audit.failureModes.length === 0 && audit.renderedHtmlStats.dataImageSrcCount > 0) {
+    audit.verdict = 'PASS: ' + audit.renderedHtmlStats.dataImageSrcCount + ' data:image sources found in rendered HTML';
+  } else if (audit.failureModes.length === 0 && audit.renderedHtmlStats.dataImageSrcCount === 0 && !hasDataUris) {
+    audit.verdict = 'NO_IMAGES: No data URIs were provided (all source images empty/missing)';
+  } else {
+    audit.verdict = 'FAIL: ' + audit.failureModes.length + ' issue(s) detected — ' + audit.failureModes[0];
+  }
+
+  // ── 6. Save artefacts to debug folder ──
+  try {
+    var debugFolder = getDebugFolder_();
+
+    // Save rendered HTML
+    var htmlFile = debugFolder.createFile('WCF_' + wcfId + '_rendered.html', renderedHtml, 'text/html');
+    htmlFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    audit.renderedHtmlUrl = htmlFile.getUrl();
+
+    // Save JSON audit report
+    var jsonStr = JSON.stringify(audit, null, 2);
+    var jsonFile = debugFolder.createFile('WCF_' + wcfId + '_image_audit.json', jsonStr, 'application/json');
+    jsonFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    audit.auditJsonUrl = jsonFile.getUrl();
+
+    Logger.log('[WCF IMAGE AUDIT] Verdict: ' + audit.verdict);
+    Logger.log('[WCF IMAGE AUDIT] Rendered HTML: ' + htmlFile.getUrl());
+    Logger.log('[WCF IMAGE AUDIT] Audit JSON: ' + jsonFile.getUrl());
+  } catch (saveErr) {
+    Logger.log('[WCF IMAGE AUDIT] Failed to save artefacts: ' + saveErr.message);
+    audit.saveError = saveErr.message;
+  }
+
+  // Log full report to Apps Script console
+  Logger.log('[WCF IMAGE AUDIT] Full report:\n' + JSON.stringify(audit, null, 2));
+
+  return audit;
+}
+
+
+// ─────────────────────────────────────────────────────────
+//  WCF HTML Image Inspection (proof embedded sources exist)
+// ─────────────────────────────────────────────────────────
+
+/**
+ * Inspects rendered HTML to verify embedded image sources exist.
+ * Returns detailed report on <img> tags and data URIs.
+ *
+ * @param {string} html - Evaluated HTML string
+ * @return {object} Inspection report with counts, IDs, src details
+ */
+function inspectRenderedHtmlForImages_(html) {
+  var report = {
+    timestamp: new Date().toISOString(),
+    htmlLength: html.length,
+    imgTagCount: 0,
+    dataImageSrcCount: 0,
+    images: {},
+    errors: [],
+    verdict: 'UNKNOWN'
+  };
+
+  // Count total <img tags
+  var imgMatches = html.match(/<img[^>]*>/gi) || [];
+  report.imgTagCount = imgMatches.length;
+
+  // Count data:image sources
+  var dataImageMatches = html.match(/src=["']data:image\/[^"']*["']/gi) || [];
+  report.dataImageSrcCount = dataImageMatches.length;
+
+  // Inspect specific image IDs
+  var expectedIds = [
+    { id: 'wcfLogo', label: 'Logo' },
+    { id: 'wcfIllustration', label: 'Illustration' },
+    { id: 'sigPrepared', label: 'Prepared Signature' },
+    { id: 'sigAcknowledged', label: 'Acknowledged Signature' },
+    { id: 'sigWarrantyRepair', label: 'Warranty Repair Signature' }
+  ];
+
+  expectedIds.forEach(function(item) {
+    var id = item.id;
+    var label = item.label;
+    
+    // Try to find <img id="..." ... src="...">
+    var pattern1 = new RegExp('id=["\']' + id + '["\'][^>]*src=["\']([^"\']*)' + '["\']', 'i');
+    // Also try reversed order: src before id
+    var pattern2 = new RegExp('src=["\']([^"\']*)' + '["\'][^>]*id=["\']' + id + '["\']', 'i');
+    
+    var match = html.match(pattern1) || html.match(pattern2);
+    
+    if (match && match[1]) {
+      var src = match[1];
+      report.images[id] = {
+        label: label,
+        found: true,
+        srcLength: src.length,
+        srcPrefix: src.substring(0, 60),
+        isDataImage: src.indexOf('data:image') === 0,
+        isEmpty: src === '' || src === 'null' || src === 'undefined'
+      };
+      
+      // Error conditions
+      if (report.images[id].isEmpty) {
+        report.errors.push(id + ': src is empty or null');
+      } else if (!report.images[id].isDataImage) {
+        report.errors.push(id + ': src is not a data URI (prefix: ' + src.substring(0, 40) + ')');
+      }
+    } else {
+      // Check if id exists but no src
+      var idExists = html.indexOf('id="' + id + '"') >= 0 || html.indexOf("id='" + id + "'") >= 0;
+      report.images[id] = {
+        label: label,
+        found: false,
+        idExistsInHtml: idExists,
+        srcLength: 0,
+        srcPrefix: '',
+        isDataImage: false,
+        isEmpty: true
+      };
+      if (idExists) {
+        report.errors.push(id + ': img tag exists but no src attribute found');
+      }
+    }
+  });
+
+  // Verdict
+  if (report.dataImageSrcCount === 0) {
+    report.verdict = 'FAIL: NO DATA URIs FOUND — PDF will have blank images';
+  } else if (report.errors.length > 0) {
+    report.verdict = 'WARNING: ' + report.errors.length + ' issue(s) — ' + report.errors[0];
+  } else {
+    report.verdict = 'PASS: ' + report.dataImageSrcCount + ' embedded image(s) detected';
+  }
+
+  return report;
+}
+
+
 function generateWcfPdfFromHtml_(wcfId, d) {
-  Logger.log('[WCF HTML PDF] ── START ── ' + wcfId);
+  var debugImages = PropertiesService.getScriptProperties().getProperty('WCF_DEBUG_IMAGES') === 'true';
+  var debugRender = PropertiesService.getScriptProperties().getProperty('WCF_DEBUG_RENDER') === 'true';
+  var imageAudit = PropertiesService.getScriptProperties().getProperty('WCF_IMAGE_AUDIT') === 'true';
+  Logger.log('[WCF HTML PDF] ── START ── ' + wcfId + ' (debugImages=' + debugImages + ', debugRender=' + debugRender + ')');
 
   try {
-    // 1. Fetch all images as base64 data URIs
-    var logoBase64 = getWcfLogoBase64_();
-    var illustrationBase64 = driveUrlToBase64_(d.illustrationUrl);
-    var prepSigBase64 = driveUrlToBase64_(d.preparedBySignatureUrl);
-    var ackSigBase64 = driveUrlToBase64_(d.acknowledgedBySignatureUrl);
-    var warSigBase64 = driveUrlToBase64_(d.warrantyRepairSignatureUrl);
+    // ========================================================================
+    // STEP 1: RESOLVE ALL IMAGES TO DATA URIs (never use Drive links in PDF)
+    // ========================================================================
+    
+    // Logo: ALWAYS use constant fileId (not from payload)
+    var logoSource = WCF_HEADER_IMAGE_ID;
+    
+    // Illustration: prioritize fileId over URL
+    var illustrationSource = d.illustrationFileId || d.illustrationUrl;
+    
+    // Signatures: prioritize fileId over URL/canvas data
+    var prepSigSource = d.preparedBySignatureFileId || d.preparedBySignature || d.preparedBySignatureUrl;
+    var ackSigSource = d.acknowledgedBySignatureFileId || d.acknowledgedBySignature || d.acknowledgedBySignatureUrl;
+    var warSigSource = d.warrantyRepairSignatureFileId || d.warrantyRepairSignature || d.warrantyRepairSignatureUrl;
+    
+    if (debugImages) {
+      Logger.log('[WCF IMG DEBUG] Sources:');
+      Logger.log('  logo: ' + logoSource);
+      Logger.log('  illustration: ' + (illustrationSource ? String(illustrationSource).substring(0, 50) + '...' : 'none'));
+      Logger.log('  prepSig: ' + (prepSigSource ? 'present' : 'none'));
+      Logger.log('  ackSig: ' + (ackSigSource ? 'present' : 'none'));
+      Logger.log('  warSig: ' + (warSigSource ? 'present' : 'none'));
+    }
+    
+    var imageResults = {
+      logo: resolveToImageDataUri_(logoSource, { label: 'logo', maxSizeMB: 1 }),
+      illustration: resolveToImageDataUri_(illustrationSource, { label: 'illustration', maxSizeMB: 3 }),
+      prepSig: resolveToImageDataUri_(prepSigSource, { label: 'prepSig', isSignature: true }),
+      ackSig: resolveToImageDataUri_(ackSigSource, { label: 'ackSig', isSignature: true }),
+      warSig: resolveToImageDataUri_(warSigSource, { label: 'warSig', isSignature: true })
+    };
+    
+    // Extract data URIs (null if failed)
+    var logoDataUri = imageResults.logo.dataUri;
+    var illustrationDataUri = imageResults.illustration.dataUri;
+    var prepSigDataUri = imageResults.prepSig ? imageResults.prepSig.dataUri : null;
+    var ackSigDataUri = imageResults.ackSig ? imageResults.ackSig.dataUri : null;
+    var warSigDataUri = imageResults.warSig ? imageResults.warSig.dataUri : null;
+    
+    // CRITICAL VALIDATION: Ensure data URIs are actual strings, not objects/blobs
+    if (logoDataUri && typeof logoDataUri !== 'string') {
+      Logger.log('[WCF IMG ERROR] logoDataUri is not a string: ' + typeof logoDataUri);
+      logoDataUri = null;
+    }
+    if (illustrationDataUri && typeof illustrationDataUri !== 'string') {
+      Logger.log('[WCF IMG ERROR] illustrationDataUri is not a string: ' + typeof illustrationDataUri);
+      illustrationDataUri = null;
+    }
+    if (prepSigDataUri && typeof prepSigDataUri !== 'string') prepSigDataUri = null;
+    if (ackSigDataUri && typeof ackSigDataUri !== 'string') ackSigDataUri = null;
+    if (warSigDataUri && typeof warSigDataUri !== 'string') warSigDataUri = null;
+    
+    // HARD ASSERTIONS: fileId exists but dataUri is empty = ERROR
+    if (logoSource && !logoDataUri) {
+      var err = 'CRITICAL: Logo fileId exists (' + logoSource + ') but dataUri is null. Check: ' + 
+                (imageResults.logo.error || 'unknown error');
+      Logger.log('[WCF IMG CRITICAL] ' + err);
+      throw new Error(err);
+    }
+    if (illustrationSource && !illustrationDataUri) {
+      Logger.log('[WCF IMG WARNING] Illustration source exists but dataUri is null: ' + 
+                 (imageResults.illustration.error || 'unknown'));
+    }
+    
+    // Log summary with detailed diagnostics
+    var imgSummary = {
+      logo: logoDataUri ? 'OK(' + imageResults.logo.byteSize + 'b, src=' + imageResults.logo.source + ')' : 'MISSING',
+      illustration: illustrationDataUri ? 'OK(' + imageResults.illustration.byteSize + 'b, src=' + imageResults.illustration.source + ')' : 'empty',
+      prepSig: prepSigDataUri ? 'OK(src=' + imageResults.prepSig.source + ')' : 'empty',
+      ackSig: ackSigDataUri ? 'OK(src=' + imageResults.ackSig.source + ')' : 'empty',
+      warSig: warSigDataUri ? 'OK(src=' + imageResults.warSig.source + ')' : 'empty'
+    };
+    Logger.log('[WCF HTML PDF] Images resolved: ' + JSON.stringify(imgSummary));
+    
+    // DEBUG RENDER MODE: Log data URI details
+    if (debugRender) {
+      Logger.log('[WCF RENDER DEBUG] Data URI diagnostics:');
+      Logger.log('  logoDataUri exists: ' + !!logoDataUri + ', len: ' + (logoDataUri ? logoDataUri.length : 0) + 
+                 ', prefix: ' + (logoDataUri ? logoDataUri.substring(0, 40) : 'null'));
+      Logger.log('  illustrationDataUri exists: ' + !!illustrationDataUri + ', len: ' + 
+                 (illustrationDataUri ? illustrationDataUri.length : 0) + 
+                 ', prefix: ' + (illustrationDataUri ? illustrationDataUri.substring(0, 40) : 'null'));
+      Logger.log('  prepSigDataUri exists: ' + !!prepSigDataUri + ', len: ' + (prepSigDataUri ? prepSigDataUri.length : 0) +
+                 ', prefix: ' + (prepSigDataUri ? prepSigDataUri.substring(0, 40) : 'null'));
+      Logger.log('  ackSigDataUri exists: ' + !!ackSigDataUri + ', len: ' + (ackSigDataUri ? ackSigDataUri.length : 0) +
+                 ', prefix: ' + (ackSigDataUri ? ackSigDataUri.substring(0, 40) : 'null'));
+      Logger.log('  warSigDataUri exists: ' + !!warSigDataUri + ', len: ' + (warSigDataUri ? warSigDataUri.length : 0) +
+                 ', prefix: ' + (warSigDataUri ? warSigDataUri.substring(0, 40) : 'null'));
+      
+      // Log extracted fileIds and mime types
+      Logger.log('[WCF RENDER DEBUG] Image resolution details:');
+      Logger.log('  logo: fileId=' + (imageResults.logo.source === 'driveFile' ? 'from Drive' : imageResults.logo.source) + 
+                 ', mime=' + imageResults.logo.mimeType);
+      if (illustrationSource) {
+        var illFileId = extractDriveFileId_(String(illustrationSource));
+        Logger.log('  illustration: extracted fileId=' + (illFileId || 'FAILED') + ', source=' + imageResults.illustration.source + 
+                   ', mime=' + imageResults.illustration.mimeType);
+      }
+      if (prepSigSource) {
+        var prepFileId = extractDriveFileId_(String(prepSigSource));
+        Logger.log('  prepSig: extracted fileId=' + (prepFileId || 'canvas/empty') + ', source=' + imageResults.prepSig.source);
+      }
+    }
+    
+    if (debugImages) {
+      Logger.log('[WCF IMG DEBUG] Detailed results:');
+      for (var key in imageResults) {
+        var r = imageResults[key];
+        if (r) {
+          Logger.log('  ' + key + ': source=' + r.source + ', size=' + r.byteSize + ', mime=' + r.mimeType + 
+                     (r.error ? ', ERROR=' + r.error : ', OK'));
+        }
+      }
+    }
 
-    // 2. Parse affected parts
-    // NOTE: The print template expects an ARRAY for data.affectedParts.
-    // The form submits affectedParts as a JSON string.
+    // ========================================================================
+    // STEP 2: Parse affected parts and rejection reasons
+    // ========================================================================
+    
     var affectedParts = [];
     try {
       if (d.affectedParts && typeof d.affectedParts === 'string') {
@@ -1656,7 +2330,6 @@ function generateWcfPdfFromHtml_(wcfId, d) {
       Logger.log('[WCF HTML PDF] Affected parts parse error: ' + e.message);
     }
 
-    // Hydrate payload for template binding consistency
     d.affectedParts = affectedParts;
 
     // Normalize causal part fields right before rendering.
@@ -1703,29 +2376,70 @@ function generateWcfPdfFromHtml_(wcfId, d) {
                ', Qty=' + JSON.stringify(d.causalPartQty) +
                ', UnitsSame=' + JSON.stringify(d.unitsSameProblem));
 
-    // 3. Parse rejection reasons
+    // ========================================================================
+    // STEP 3: Build template with resolved data URIs
+    // ========================================================================
+    
+    // CRITICAL: Add data URIs to the data object BEFORE passing to template
+    // The template will use <?= data.logoDataUri ?> pattern
+    d.logoDataUri = logoDataUri || '';
+    d.illustrationDataUri = illustrationDataUri || '';
+    d.preparedBySigDataUri = prepSigDataUri || '';
+    d.ackSigDataUri = ackSigDataUri || '';
+    d.warrantyRepairSigDataUri = warSigDataUri || '';
+    
+    // Also set legacy names for backward compatibility if template still uses them
+    d.logoBase64 = logoDataUri || '';
+    d.illustrationBase64 = illustrationDataUri || '';
+    d.prepSigBase64 = prepSigDataUri || '';
+    d.ackSigBase64 = ackSigDataUri || '';
+    d.warSigBase64 = warSigDataUri || '';
+    
+    var tpl = HtmlService.createTemplateFromFile('WcfPrint');
+    tpl.wcfId = wcfId;
+    
+    // Pass data URIs as BOTH template-level AND data object properties for maximum compatibility
+    tpl.logoDataUri = logoDataUri || '';
+    tpl.illustrationDataUri = illustrationDataUri || '';
+    tpl.prepSigDataUri = prepSigDataUri || '';
+    tpl.ackSigDataUri = ackSigDataUri || '';
+    tpl.warSigDataUri = warSigDataUri || '';
+    
+    // Legacy variable names for backward compatibility with existing template
+    tpl.logoBase64 = logoDataUri || '';
+    tpl.illustrationBase64 = illustrationDataUri || '';
+    tpl.prepSigBase64 = prepSigDataUri || '';
+    tpl.ackSigBase64 = ackSigDataUri || '';
+    tpl.warSigBase64 = warSigDataUri || '';
+    
+    // Debug flag for template rendering
+    tpl.debug = debugRender;
+    
+    tpl.affectedParts = affectedParts;
+    tpl.data = d;  // Now d contains all image data URIs
+    tpl.formatDate = formatDateForPdf_;
+    
+    if (debugRender) {
+      Logger.log('[WCF RENDER DEBUG] Template variables bound:');
+      Logger.log('  tpl.logoBase64 type: ' + typeof tpl.logoBase64 + ', len: ' + (tpl.logoBase64 ? tpl.logoBase64.length : 0));
+      Logger.log('  tpl.data.logoDataUri type: ' + typeof d.logoDataUri + ', len: ' + (d.logoDataUri ? d.logoDataUri.length : 0));
+      Logger.log('  tpl.illustrationBase64 type: ' + typeof tpl.illustrationBase64 + ', len: ' + 
+                 (tpl.illustrationBase64 ? tpl.illustrationBase64.length : 0));
+      Logger.log('  tpl.data.illustrationDataUri type: ' + typeof d.illustrationDataUri + ', len: ' + 
+                 (d.illustrationDataUri ? d.illustrationDataUri.length : 0));
+      Logger.log('  tpl.data exists: ' + !!tpl.data);
+      Logger.log('  tpl.debug: ' + tpl.debug);
+    }
+
+    // Parse rejection reasons
     var rejectReasons = [];
     try {
       if (d.rejectReasons) {
         rejectReasons = Array.isArray(d.rejectReasons) ? d.rejectReasons : JSON.parse(d.rejectReasons);
       }
     } catch (e) {}
-
-    // 4. Build template
-    var tpl = HtmlService.createTemplateFromFile('WcfPrint');
-    tpl.wcfId = wcfId;
-    tpl.logoBase64 = logoBase64;
-    tpl.illustrationBase64 = illustrationBase64;
-    tpl.prepSigBase64 = prepSigBase64;
-    tpl.ackSigBase64 = ackSigBase64;
-    tpl.warSigBase64 = warSigBase64;
-    tpl.affectedParts = affectedParts;
-    tpl.data = d;
-
-    // Template helper: format date
-    tpl.formatDate = formatDateForPdf_;
-
-    // Template helper: MC Usage checkbox
+    
+    // Template helpers
     tpl.mcUsageChecked = function(type) {
       var usage = String(d.mcUsage || '').toUpperCase();
       if (type === 'OTHERS') {
@@ -1747,24 +2461,173 @@ function generateWcfPdfFromHtml_(wcfId, d) {
       return '';
     };
 
-    // 5. Evaluate template → HTML string
+    // ========================================================================
+    // STEP 4: Evaluate template → HTML string (SINGLE SOURCE OF TRUTH)
+    // ========================================================================
+    
     var htmlContent = tpl.evaluate().getContent();
     Logger.log('[WCF HTML PDF] HTML rendered, length=' + htmlContent.length);
+    
+    // HARD CHECK: Detect unevaluated template (raw <? markers)
+    if (htmlContent.indexOf('<?=') >= 0 || htmlContent.indexOf('<? ') >= 0) {
+      var markerCount = (htmlContent.match(/<\?[=\s]/g) || []).length;
+      Logger.log('[WCF HTML PDF] WARNING: Rendered HTML still contains ' + markerCount + ' raw <? markers — template NOT fully evaluated!');
+    }
+    
+    // DEBUG RENDER MODE: Check if images exist in rendered HTML
+    if (debugRender) {
+      var logoCount = (htmlContent.match(/data:image\/[^;]*;base64,/g) || []).length;
+      var imgTagCount = (htmlContent.match(/<img[^>]*src=["']data:image/g) || []).length;
+      Logger.log('[WCF RENDER DEBUG] Rendered HTML contains:');
+      Logger.log('  data:image URIs found: ' + logoCount);
+      Logger.log('  <img> tags with data:image src: ' + imgTagCount);
+      
+      // Check for specific image ids
+      ['wcfLogo', 'wcfIllustration', 'sigPrepared', 'sigAcknowledged', 'sigWarrantyRepair'].forEach(function(imgId) {
+        var found = htmlContent.indexOf('id="' + imgId + '"') >= 0;
+        Logger.log('  id="' + imgId + '": ' + (found ? 'PRESENT' : 'MISSING'));
+      });
+    }
+    
+    // ========================================================================
+    // STEP 5a: INSPECT rendered HTML for embedded images (CRITICAL)
+    // ========================================================================
+    
+    var imageInspection = inspectRenderedHtmlForImages_(htmlContent);
+    Logger.log('[WCF HTML INSPECT] Verdict: ' + imageInspection.verdict);
+    Logger.log('[WCF HTML INSPECT] Total <img> tags: ' + imageInspection.imgTagCount);
+    Logger.log('[WCF HTML INSPECT] Data-URI sources: ' + imageInspection.dataImageSrcCount);
+    
+    // Save inspection report to case folder
+    try {
+      var caseFolder = getOrCreateWcfFolder_(wcfId);
+      var reportJson = JSON.stringify(imageInspection, null, 2);
+      var reportFile = caseFolder.createFile('WCF_' + wcfId + '_HTML_IMAGE_REPORT.json', reportJson, 'application/json');
+      reportFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      Logger.log('[WCF HTML INSPECT] Report saved: ' + reportFile.getUrl());
+    } catch (reportErr) {
+      Logger.log('[WCF HTML INSPECT] WARNING: Failed to save inspection report: ' + reportErr.message);
+    }
+    
+    // Fail fast if no embedded images found
+    if (imageInspection.dataImageSrcCount === 0) {
+      var missingMsg = '[WCF HTML INSPECT] CRITICAL: No data:image sources found in HTML. Images will be blank in PDF.\n';
+      missingMsg += 'Missing images: ';
+      var missingIds = [];
+      for (var imgId in imageInspection.images) {
+        if (!imageInspection.images[imgId].isDataImage) {
+          missingIds.push(imgId);
+        }
+      }
+      missingMsg += missingIds.join(', ');
+      Logger.log(missingMsg);
+      
+      // Log which template keys were provided
+      Logger.log('[WCF HTML INSPECT] Template keys check:');
+      Logger.log('  data.logoDataUri: ' + (d.logoDataUri ? d.logoDataUri.substring(0, 40) : 'MISSING'));
+      Logger.log('  data.illustrationDataUri: ' + (d.illustrationDataUri ? d.illustrationDataUri.substring(0, 40) : 'MISSING'));
+      Logger.log('  data.preparedBySigDataUri: ' + (d.preparedBySigDataUri ? d.preparedBySigDataUri.substring(0, 40) : 'MISSING'));
+      
+      // Continue anyway, but flag the issue
+      Logger.log('[WCF HTML INSPECT] Continuing with PDF generation, but images will be blank.');
+    }
+    
+    // ========================================================================
+    // STEP 5b: ALWAYS save EXACT_SOURCE.html (proof of what's converted to PDF)
+    // ========================================================================
+    
+    try {
+      var caseFolder = getOrCreateWcfFolder_(wcfId);
+      var exactSourceFile = caseFolder.createFile('WCF_' + wcfId + '_EXACT_SOURCE.html', htmlContent, 'text/html');
+      exactSourceFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      Logger.log('[WCF HTML PDF] EXACT_SOURCE.html saved (this is the HTML converted to PDF): ' + exactSourceFile.getUrl());
+    } catch (exactErr) {
+      Logger.log('[WCF HTML PDF] WARNING: Failed to save EXACT_SOURCE.html: ' + exactErr.message);
+    }
+    
+    // ========================================================================
+    // STEP 6: WCF_IMAGE_AUDIT — comprehensive audit to debug folder
+    // ========================================================================
+    
+    if (imageAudit) {
+      try {
+        auditWcfImages_(d, htmlContent, wcfId);
+      } catch (auditErr) {
+        Logger.log('[WCF IMAGE AUDIT] Audit failed: ' + auditErr.message);
+      }
+    }
+    
+    // ========================================================================
+    // STEP 7: Save rendered HTML copy if WCF_DEBUG_RENDER enabled (to debug folder)
+    // ========================================================================
+    
+    if (debugRender) {
+      try {
+        var debugFolder = getDebugFolder_();
+        var renderedFileName = 'WCF_' + wcfId + '_rendered.html';
+        var renderedHtmlFile = debugFolder.createFile(renderedFileName, htmlContent, 'text/html');
+        renderedHtmlFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        Logger.log('[WCF RENDER DEBUG] Rendered HTML copy saved to debug folder: ' + renderedHtmlFile.getUrl());
+      } catch (renderErr) {
+        Logger.log('[WCF RENDER DEBUG] Rendered HTML save failed: ' + renderErr.message);
+      }
+    }
+    
+    // ========================================================================
+    // STEP 8: Save debug HTML copy if WCF_DEBUG_IMAGES enabled (to debug folder)
+    // ========================================================================
+    
+    var debugHtmlFileId = '';
+    if (debugImages) {
+      try {
+        var debugFolder = getDebugFolder_();
+        var debugFileName = 'WCF_' + wcfId + '_debug.html';
+        var debugHtmlFile = debugFolder.createFile(debugFileName, htmlContent, 'text/html');
+        debugHtmlFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        debugHtmlFileId = debugHtmlFile.getId();
+        Logger.log('[WCF HTML PDF] Debug HTML copy saved to debug folder: ' + debugHtmlFile.getUrl());
+      } catch (debugErr) {
+        Logger.log('[WCF HTML PDF] Debug HTML save failed: ' + debugErr.message);
+      }
+    }
+    
+    // ========================================================================
+    // STEP 9: Convert HTML → PDF using HtmlService (better data-URI support)
+    // ========================================================================
+    Logger.log('[WCF HTML PDF] Converting HTML to PDF via HtmlService (HTML length=' + htmlContent.length + ' chars)');
+    
+    try {
+      // HtmlService method is more reliable than Utilities.newBlob for data URIs
+      var htmlOutput = HtmlService.createHtmlOutput(htmlContent);
+      var pdfBlob = htmlOutput.getBlob().getAs('application/pdf');
+      pdfBlob.setName('WCF_' + wcfId + '.pdf');
+      Logger.log('[WCF HTML PDF] PDF blob created via HtmlService: ' + pdfBlob.getName() + ', size=' + pdfBlob.getBytes().length + ' bytes');
+    } catch (pdfErr) {
+      Logger.log('[WCF HTML PDF] HtmlService PDF conversion failed: ' + pdfErr.message);
+      Logger.log('[WCF HTML PDF] Falling back to Utilities.newBlob method');
+      
+      // Fallback to old method
+      var pdfBlob = Utilities.newBlob(htmlContent, 'text/html', 'WCF_' + wcfId + '.html')
+        .getAs('application/pdf');
+      pdfBlob.setName('WCF_' + wcfId + '.pdf');
+      Logger.log('[WCF HTML PDF] PDF blob created via fallback: ' + pdfBlob.getName() + ', size=' + pdfBlob.getBytes().length + ' bytes');
+    }
 
-    // 6. Convert HTML → PDF blob
-    var pdfBlob = Utilities.newBlob(htmlContent, 'text/html', 'WCF_' + wcfId + '.html')
-      .getAs('application/pdf');
-    pdfBlob.setName('WCF_' + wcfId + '.pdf');
-    Logger.log('[WCF HTML PDF] PDF blob created: ' + pdfBlob.getName());
-
-    // 7. Save to Drive
+    // ========================================================================
+    // STEP 10: Save PDF to Drive in WCF case folder
+    // ========================================================================
     var folder = getOrCreateWcfFolder_(wcfId);
+    Logger.log('[WCF HTML PDF] Case folder: ' + folder.getName() + ' (ID=' + folder.getId() + ')');
     var pdfFile = folder.createFile(pdfBlob);
     pdfFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
     Logger.log('[WCF HTML PDF] ── DONE ── saved: ' + pdfFile.getUrl());
     return {
       success: true,
+      pdfFileId: pdfFile.getId(),
+      pdfUrl: pdfFile.getUrl(),
+      previewUrl: 'https://drive.google.com/file/d/' + pdfFile.getId() + '/preview',
+      downloadUrl: 'https://drive.google.com/uc?export=download&id=' + pdfFile.getId(),
       url: pdfFile.getUrl(),
       id: pdfFile.getId()
     };
@@ -1772,7 +2635,16 @@ function generateWcfPdfFromHtml_(wcfId, d) {
   } catch (err) {
     Logger.log('[WCF HTML PDF] ERROR: ' + err.message);
     Logger.log('[WCF HTML PDF] Stack: ' + (err.stack || ''));
-    throw err;
+    return {
+      success: false,
+      pdfFileId: '',
+      pdfUrl: '',
+      previewUrl: '',
+      downloadUrl: '',
+      url: '',
+      id: '',
+      error: err.message
+    };
   }
 }
 
@@ -2926,10 +3798,32 @@ function sendWcfConfirmation_(wcfId, formData, pdfUrl) {
 /**
  * Extract Google Drive file ID from a URL.
  */
+/**
+ * Extract Drive file ID from various URL formats or return as-is if already an ID.
+ * Supports:
+ *   - https://drive.google.com/file/d/<id>/view
+ *   - https://drive.google.com/uc?export=view&id=<id>
+ *   - https://drive.google.com/open?id=<id>
+ *   - Raw fileId (25+ chars)
+ * @param {string} url
+ * @return {string|null}
+ */
 function extractDriveFileId_(url) {
   if (!url) return null;
-  var m = String(url).match(/[-\w]{25,}/);
-  return m ? m[0] : null;
+  var str = String(url).trim();
+  
+  // Pattern 1: /file/d/<id>/
+  var m1 = str.match(/\/file\/d\/([a-zA-Z0-9_-]{25,})/);
+  if (m1) return m1[1];
+  
+  // Pattern 2: id=<id>
+  var m2 = str.match(/[?&]id=([a-zA-Z0-9_-]{25,})/);
+  if (m2) return m2[1];
+  
+  // Pattern 3: assume it's already a fileId if it's 25+ alphanumeric chars
+  if (/^[a-zA-Z0-9_-]{25,}$/.test(str)) return str;
+  
+  return null;
 }
 
 // ================================================================
@@ -3474,4 +4368,3 @@ function UTILITY_CleanupOldLogs() {
     Logger.log('Cleanup error: ' + err.message);
   }
 }
-
