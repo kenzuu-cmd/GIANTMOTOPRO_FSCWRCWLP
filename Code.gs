@@ -50,6 +50,12 @@ const WCF_HEADER_IMAGE_ID = '1bJLyGs9zRsEvpzbPdiGBOl2Jv19pkUEd';
 const WCF_PARENT_FOLDER_ID = '1IHf_UtMTCc8CVIr3zZIOvV1udnrftqua';
 
 /**
+ * WLP Parent Folder (all WLP case folders are created here)
+ * If not set, creates a default "WLP_Cases" folder in Drive
+ */
+const WLP_PARENT_FOLDER_ID = ''; // Set your WLP parent folder ID here, or leave empty to auto-create
+
+/**
  * WCF Image Audit Debug Folder
  * All audit artifacts (rendered HTML, JSON reports) are saved here.
  * Folder: https://drive.google.com/drive/folders/1d3fnV-W79HV17G3fQXwvSQUPKjRrtcee
@@ -394,7 +400,7 @@ const REQUIRED_FIELDS = {
   ],
   
   FSC: [
-    { key: 'dealerTransNo', label: 'Dealer Transmittal Number', type: 'text' },
+    { key: 'dealerTransNo', label: 'Dealer Transmittal Number', removed: true }, // Auto-generated, not required
     { key: 'dealerMechCode', label: 'Dealer/Mechanic Code', type: 'select' },
     { key: 'wrcNumber', label: 'WRC Number', type: 'text' },
     { key: 'frameNumber', label: 'Frame Number', type: 'text' },
@@ -417,7 +423,8 @@ const REQUIRED_FIELDS = {
     { key: 'acknowledgedBy', label: 'Acknowledged By', type: 'text' },
     { key: 'branch', label: 'Branch', type: 'select' },
     { key: 'email', label: 'Email Address', type: 'text' },
-    { key: 'fileUrl', label: 'Document/Image Upload', type: 'file' }
+    { key: 'partsTagPhoto', label: 'Parts Tag Photo', type: 'photo-object', minCount: 1, maxCount: 1 },
+    { key: 'damagedPartPhotos', label: 'Damaged Part Photos', type: 'photo-array', minCount: 2 }
   ],
   
   WCF: [
@@ -499,7 +506,34 @@ function validateSubmission_(formType, data) {
     var value = data[field.key];
     var isEmpty = false;
     
-    // Check if value is empty based on type
+    // Special handling for WLP multi-photo fields
+    if (formType === 'WLP' && field.type === 'photo-object') {
+      // partsTagPhoto: single object with {url, fileId, name}
+      if (!value || typeof value !== 'object' || !value.url) {
+        missing.push({
+          key: field.key,
+          label: field.label + ' (exactly 1 required)',
+          type: field.type
+        });
+      }
+      continue; // Skip standard validation
+    }
+    
+    if (formType === 'WLP' && field.type === 'photo-array') {
+      // damagedPartPhotos: array of {url, fileId, name}
+      var minCount = field.minCount || 1;
+      if (!value || !Array.isArray(value) || value.length < minCount) {
+        var count = (value && Array.isArray(value)) ? value.length : 0;
+        missing.push({
+          key: field.key,
+          label: field.label + ' (at least ' + minCount + ' required, received ' + count + ')',
+          type: field.type
+        });
+      }
+      continue; // Skip standard validation
+    }
+    
+    // Standard validation for other field types
     if (value === null || value === undefined) {
       isEmpty = true;
     } else if (typeof value === 'string') {
@@ -539,6 +573,82 @@ function validateSubmission_(formType, data) {
 // ================================================================
 //  HELPER FUNCTIONS
 // ================================================================
+
+/**
+ * FSC-ONLY: Generate the next sequential Dealer Transmittal Number.
+ * Format: FSC1, FSC2, FSC3, etc.
+ * 
+ * Uses LockService to prevent race conditions during concurrent submissions.
+ * Scans the FSC sheet to find the highest existing FSC number and returns next.
+ * 
+ * @return {string} Next transmittal number (e.g., "FSC42")
+ */
+function getNextFscTransmittalNo_() {
+  var lock = LockService.getScriptLock();
+  try {
+    // Acquire lock with 30-second timeout
+    lock.waitLock(30000);
+    
+    var sheet = getSheet_(SHEET_FSC, [
+      'Dealer Transmittal No.', 'Dealer/Mechanic Code', 'WRC Number',
+      'Frame Number', 'Coupon Number', 'Actual Mileage',
+      'Repaired Month', 'Repaired Day', 'Repaired Year', 'KSC Code',
+      'Dealer Code', 'Attachment URL', 'BRANCH', 'EMAIL', 'STATUS'
+    ]);
+    
+    var transmittalColIdx = findColumnByHeader_(sheet, 'Dealer Transmittal No.');
+    if (transmittalColIdx === 0) {
+      // Column doesn't exist - this is the first FSC entry
+      return 'FSC1';
+    }
+    
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 2) {
+      // No data rows yet
+      return 'FSC1';
+    }
+    
+    // Read all existing transmittal numbers
+    var data = sheet.getRange(2, transmittalColIdx, lastRow - 1, 1).getValues();
+    var maxNum = 0;
+    var regex = /^FSC(\d+)$/i;
+    
+    for (var i = 0; i < data.length; i++) {
+      var val = String(data[i][0]).trim();
+      var match = val.match(regex);
+      if (match) {
+        var num = parseInt(match[1], 10);
+        if (num > maxNum) {
+          maxNum = num;
+        }
+      }
+    }
+    
+    var nextNum = maxNum + 1;
+    return 'FSC' + nextNum;
+    
+  } catch (err) {
+    logError_('getNextFscTransmittalNo_ failed: ' + err.message, '', '');
+    throw new Error('Unable to generate FSC transmittal number: ' + err.message);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Client-callable wrapper: Fetch the next FSC transmittal number for UI display.
+ * This is called when the FSC form loads to show the user what number will be assigned.
+ * 
+ * @return {string} Next transmittal number
+ */
+function getFscTransmittalNumberForUI() {
+  try {
+    return getNextFscTransmittalNo_();
+  } catch (err) {
+    logError_('getFscTransmittalNumberForUI failed: ' + err.message, '', '');
+    return 'FSC-ERROR';
+  }
+}
 
 /**
  * Get or create a sheet by name.  If the sheet doesn't exist it is
@@ -972,12 +1082,15 @@ function submitFSC(formData) {
       return { success: false, message: 'Coupon number must be 1, 2, 3, or 4.' };
     }
 
+    // ---- Generate auto-incremented transmittal number (FSC-only) ----
+    var generatedTransmittalNo = getNextFscTransmittalNo_();
+
     // ---- Resolve attachment column ----
     var attachInfo = ensureAttachmentColumn_(sheet, 'Attachment URL');
 
     // ---- Build field map ----
     var fieldMap = {
-      'Dealer Transmittal No.': formData.dealerTransNo,
+      'Dealer Transmittal No.': generatedTransmittalNo,
       'Dealer/Mechanic Code':   dealerCode,
       'WRC Number':             formData.wrcNumber,
       'Frame Number':           formData.frameNumber,
@@ -1015,8 +1128,10 @@ function submitFSC(formData) {
 
     return {
       success: true,
-      message: 'FSC entry submitted successfully. WRC Number: ' + formData.wrcNumber
-             + '. Confirmation email sent to ' + formData.email + '.'
+      message: 'FSC entry submitted successfully. Dealer Transmittal No: ' + generatedTransmittalNo
+             + ', WRC Number: ' + formData.wrcNumber
+             + '. Confirmation email sent to ' + formData.email + '.',
+      transmittalNo: generatedTransmittalNo
     };
 
   } catch (err) {
@@ -1031,9 +1146,25 @@ function submitFSC(formData) {
 
 function submitWLP(formData) {
   try {
+    // ---- SERVER DIAGNOSTIC LOGGING (WLP ONLY) ----
+    Logger.log('=== WLP SUBMISSION START ===');
+    Logger.log('Received formData keys: ' + Object.keys(formData).join(', '));
+    Logger.log('> partsTagPhoto:');
+    Logger.log('  - type: ' + typeof formData.partsTagPhoto);
+    Logger.log('  - value: ' + JSON.stringify(formData.partsTagPhoto));
+    Logger.log('  - has url: ' + (formData.partsTagPhoto ? !!formData.partsTagPhoto.url : 'N/A'));
+    Logger.log('> damagedPartPhotos:');
+    Logger.log('  - type: ' + typeof formData.damagedPartPhotos);
+    Logger.log('  - isArray: ' + Array.isArray(formData.damagedPartPhotos));
+    Logger.log('  - length: ' + (formData.damagedPartPhotos ? formData.damagedPartPhotos.length : 'NULL'));
+    if (formData.damagedPartPhotos && Array.isArray(formData.damagedPartPhotos)) {
+      Logger.log('  - value: ' + JSON.stringify(formData.damagedPartPhotos));
+    }
+    
     // ---- Centralized Validation ----
     var validation = validateSubmission_('WLP', formData);
     if (!validation.ok) {
+      Logger.log('WLP validation failed: ' + validation.message);
       return {
         success: false,
         errorType: 'VALIDATION',
@@ -1042,10 +1173,35 @@ function submitWLP(formData) {
       };
     }
 
+    // ---- WLP-specific multi-photo validation ----
+    if (!formData.partsTagPhoto || !formData.partsTagPhoto.url) {
+      var diagMsg = 'Parts Tag photo validation failed. Received: ' + (formData.partsTagPhoto ? JSON.stringify(formData.partsTagPhoto) : 'NULL');
+      Logger.log(diagMsg);
+      return { 
+        success: false, 
+        message: 'Parts Tag photo is required (exactly 1 photo). Server received: ' + (formData.partsTagPhoto ? 'invalid data structure' : 'no photo data') 
+      };
+    }
+    
+    if (!formData.damagedPartPhotos || !Array.isArray(formData.damagedPartPhotos) || formData.damagedPartPhotos.length < 2) {
+      var count = formData.damagedPartPhotos ? formData.damagedPartPhotos.length : 0;
+      var diagMsg = 'Damaged Part photos validation failed. Expected: array with >=2 items. Received: ' 
+                  + (formData.damagedPartPhotos ? 'array with ' + count + ' items' : 'NULL');
+      Logger.log(diagMsg);
+      return { 
+        success: false, 
+        message: 'Damaged Part photos: at least 2 required (server received ' + count + ').' 
+      };
+    }
+    
+    Logger.log('WLP photo validation passed: 1 Parts Tag + ' + formData.damagedPartPhotos.length + ' Damaged Part');
+
     var sheet = getSheet_(SHEET_WLP, [
       'WRS Number', 'Repair Acknowledged Month', 'Repair Acknowledged Day',
       'Repair Acknowledged Year', 'Acknowledged By: (Customer Name)',
       'Dealer/Mechanic Code', 'Dealer Code',
+      'Parts Tag Photo URL', 'Parts Tag Photo File ID',
+      'Damaged Part Photo URLs', 'Damaged Part Photo File IDs',
       'Attachment URL', 'BRANCH', 'EMAIL', 'STATUS'
     ]);
 
@@ -1062,8 +1218,18 @@ function submitWLP(formData) {
       dealerCode = DEFAULT_DEALER_CODE;
     }
 
-    // ---- Resolve attachment column ----
+    // ---- Resolve attachment column (backward compatibility) ----
     var attachInfo = ensureAttachmentColumn_(sheet, 'Attachment URL');
+
+    // ---- Extract photo URLs and File IDs ----
+    var partsTagUrl = formData.partsTagPhoto.url || '';
+    var partsTagFileId = formData.partsTagPhoto.fileId || '';
+    
+    var damagedPartUrls = formData.damagedPartPhotos.map(function(p) { return p.url || ''; }).join('\\n');
+    var damagedPartFileIds = formData.damagedPartPhotos.map(function(p) { return p.fileId || ''; }).join('\\n');
+    
+    // For backward compatibility, store first damaged part URL in legacy attachment column
+    var legacyAttachmentUrl = formData.damagedPartPhotos[0] ? formData.damagedPartPhotos[0].url : '';
 
     // ---- Build field map ----
     var fieldMap = {
@@ -1074,22 +1240,30 @@ function submitWLP(formData) {
       'Acknowledged By: (Customer Name)':    formData.acknowledgedBy,
       'Dealer/Mechanic Code':                dealerCode,
       'Dealer Code':                         dealerCode,
+      'Parts Tag Photo URL':                 partsTagUrl,
+      'Parts Tag Photo File ID':             partsTagFileId,
+      'Damaged Part Photo URLs':             damagedPartUrls,
+      'Damaged Part Photo File IDs':         damagedPartFileIds,
       'BRANCH':                              formData.branch,
       'EMAIL':                               formData.email,
       'STATUS':                              'PENDING'
     };
-    fieldMap[attachInfo.name] = formData.fileUrl || '';
+    fieldMap[attachInfo.name] = legacyAttachmentUrl;
 
     var requiredCols = [
       'WRS Number', 'Repair Acknowledged Month', 'Repair Acknowledged Day',
       'Repair Acknowledged Year', 'Acknowledged By: (Customer Name)',
-      'Dealer/Mechanic Code', 'Dealer Code', 'BRANCH', 'EMAIL', 'STATUS'
+      'Dealer/Mechanic Code', 'Dealer Code', 'BRANCH', 'EMAIL', 'STATUS',
+      'Parts Tag Photo URL', 'Parts Tag Photo File ID',
+      'Damaged Part Photo URLs', 'Damaged Part Photo File IDs'
     ];
 
     try {
       var lastRow = appendMappedRow_(sheet, fieldMap, requiredCols);
-      logInfo_('WLP submitted – Row ' + lastRow, SHEET_WLP, lastRow);
+      Logger.log('WLP sheet write successful – Row ' + lastRow);
+      logInfo_('WLP submitted – Row ' + lastRow + ' (Parts Tag + ' + formData.damagedPartPhotos.length + ' Damaged Part photos)', SHEET_WLP, lastRow);
     } catch (err) {
+      Logger.log('WLP sheet append failed: ' + err.message);
       logError_('WLP append failed: ' + err.message, formData.wrsNumber, '');
       return { success: false, message: 'System error: Could not save data. Contact administrator.' };
     }
@@ -1099,13 +1273,21 @@ function submitWLP(formData) {
       formData.branch, dealerCode
     );
 
+    var successMsg = 'WLP acknowledgment submitted successfully. WRS Number: ' + formData.wrsNumber
+             + '. Photos uploaded: 1 Parts Tag + ' + formData.damagedPartPhotos.length + ' Damaged Part.'
+             + ' Confirmation email sent to ' + formData.email + '.';
+    Logger.log('=== WLP SUBMISSION SUCCESS ===');
+    Logger.log(successMsg);
+
     return {
       success: true,
-      message: 'WLP acknowledgment submitted successfully. WRS Number: ' + formData.wrsNumber
-             + '. Confirmation email sent to ' + formData.email + '.'
+      message: successMsg
     };
 
   } catch (err) {
+    Logger.log('=== WLP SUBMISSION ERROR ===');
+    Logger.log('Exception: ' + err.message);
+    Logger.log('Stack: ' + err.stack);
     logError_('WLP exception: ' + err.message, formData.wrsNumber || '', '');
     return { success: false, message: 'Server error: ' + err.message };
   }
@@ -3903,6 +4085,117 @@ function uploadFile(fileData) {
   } catch (err) {
     Logger.log('Upload error: ' + err.toString());
     return { success: false, url: '', message: 'Upload failed: ' + err.toString() };
+  }
+}
+
+// ================================================================
+//  WLP MULTI-PHOTO UPLOAD
+// ================================================================
+
+/**
+ * Get or create WLP parent folder
+ * @returns {Folder} WLP parent folder
+ */
+function getWlpParentFolder_() {
+  var parentFolder;
+  
+  if (WLP_PARENT_FOLDER_ID && WLP_PARENT_FOLDER_ID.trim() !== '') {
+    try {
+      parentFolder = DriveApp.getFolderById(WLP_PARENT_FOLDER_ID);
+      return parentFolder;
+    } catch (err) {
+      Logger.log('WLP parent folder ID invalid, creating default folder');
+    }
+  }
+  
+  // Create or find default WLP_Cases folder
+  var folderName = 'WLP_Cases';
+  var folders = DriveApp.getFoldersByName(folderName);
+  if (folders.hasNext()) {
+    parentFolder = folders.next();
+  } else {
+    parentFolder = DriveApp.createFolder(folderName);
+    Logger.log('Created WLP parent folder: ' + folderName);
+  }
+  
+  return parentFolder;
+}
+
+/**
+ * Get or create WLP case folder for a specific WRS Number
+ * @param {string} wrsNumber - WRS Number
+ * @returns {Folder} Case folder
+ */
+function getWlpCaseFolder_(wrsNumber) {
+  var parentFolder = getWlpParentFolder_();
+  var caseFolderName = 'WLP_' + wrsNumber;
+  
+  var folders = parentFolder.getFoldersByName(caseFolderName);
+  if (folders.hasNext()) {
+    return folders.next();
+  }
+  
+  var caseFolder = parentFolder.createFolder(caseFolderName);
+  return caseFolder;
+}
+
+/**
+ * Upload a single WLP photo (Parts Tag or Damaged Part)
+ * Called from client-side for each photo
+ * 
+ * @param {Object} fileData - {name, type, data (base64), formType, photoType, photoIndex, wrsNumber}
+ * @returns {Object} {success, url, fileId, message}
+ */
+function uploadWlpPhoto(fileData) {
+  try {
+    Logger.log('uploadWlpPhoto called with photoType: ' + fileData.photoType + ', photoIndex: ' + fileData.photoIndex + ', wrsNumber: ' + fileData.wrsNumber);
+    
+    if (!fileData.wrsNumber || !fileData.photoType) {
+      Logger.log('uploadWlpPhoto validation failed: missing wrsNumber or photoType');
+      return { success: false, message: 'Missing wrsNumber or photoType' };
+    }
+    
+    if (!fileData.data) {
+      Logger.log('uploadWlpPhoto validation failed: missing file data (base64)');
+      return { success: false, message: 'Missing file data' };
+    }
+    
+    // Get or create case folder
+    var caseFolder = getWlpCaseFolder_(fileData.wrsNumber);
+    Logger.log('Case folder obtained: ' + caseFolder.getName() + ' (id: ' + caseFolder.getId() + ')');
+    
+    // Determine file name
+    var ext = fileData.name.split('.').pop();
+    var prefix = fileData.photoType === 'partsTag' ? 'PartsTag' : 'DamagedPart';
+    var index = (fileData.photoIndex || 0) + 1;
+    var paddedIndex = String(index).padStart(2, '0');
+    var newFileName = prefix + '_WLP-' + fileData.wrsNumber + '_' + paddedIndex + '.' + ext;
+    
+    Logger.log('Creating file: ' + newFileName);
+    
+    // Create file from base64
+    var bytes = Utilities.base64Decode(fileData.data);
+    var blob = Utilities.newBlob(bytes, fileData.type, newFileName);
+    var file = caseFolder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    
+    Logger.log('WLP photo uploaded successfully: ' + newFileName + ' (fileId: ' + file.getId() + ', url: ' + file.getUrl() + ')');
+    
+    return {
+      success: true,
+      url: file.getUrl(),
+      fileId: file.getId(),
+      message: 'Photo uploaded successfully: ' + newFileName
+    };
+  } catch (err) {
+    Logger.log('uploadWlpPhoto ERROR: ' + err.message);
+    Logger.log('Stack: ' + err.stack);
+    return { 
+      success: false, 
+      url: '', 
+      fileId: '',
+      message: 'Upload failed: ' + err.toString() 
+    };
   }
 }
 
