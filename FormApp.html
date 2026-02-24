@@ -818,8 +818,11 @@
             <h3 class="section-title">Dealer Information</h3>
             <div class="form-row-2">
               <div class="form-group">
-                <label for="fscDealerTransNo">Dealer Transmittal Number <span class="req">*</span></label>
-                <input type="text" id="fscDealerTransNo" name="fscDealerTransNo" required aria-required="true" placeholder="Enter transmittal number">
+                <label for="fscDealerTransNo">Dealer Transmittal Number <span class="req">*</span>
+                  <br>
+                  <small style="color: #6b7280; font-weight: normal;">(Auto-generated - Read Only)</small>
+                </label>
+                <input type="text" id="fscDealerTransNo" name="fscDealerTransNo" readonly required aria-required="true" placeholder="Loading..." style="background-color: var(--color-disabled); cursor: not-allowed;">
               </div>
               <div class="form-group">
                 <label for="fscDealerCode">Dealer/Mechanic Code <span class="req">*</span></label>
@@ -1002,31 +1005,102 @@
 
           <!-- Contact Information -->
           <div class="form-section">
-            <h3 class="section-title">Contact Information</h3>
+            <h3 class="section-title">Email Contact Information</h3>
             <div class="form-row-full">
               <div class="form-group">
-                <label for="wlpEmail">Email Address <span class="req">*</span></label>
-                <input type="email" id="wlpEmail" name="wlpEmail" required aria-required="true" placeholder="your.email@example.com">
-                <span class="help-text">Required for status notifications</span>
+                <label for="wlpEmail">Branch Email Address <span class="req">*</span></label>
+                <input type="email" id="wlpEmail" name="wlpEmail" required aria-required="true" placeholder="branch.email@gmpc.com.ph">
+                <span class="help-text" style="color:var(--color-warning);font-weight:500;"><strong>Note:</strong> Please use the branch email address (not a personal email).</span>
               </div>
             </div>
           </div>
 
-          <!-- File Attachment -->
+          <!-- Photo Attachments -->
           <div class="form-section">
-            <h3 class="section-title">Attach Document or Image</h3>
-            <div class="file-upload-section">
-              <div class="file-input-wrapper">
-                <label for="wlpFileInput" class="file-input-label">
-                  <span>Choose File <span class="req">*</span></span>
-                </label>
-                <input type="file" id="wlpFileInput" name="wlpFileInput" accept="image/*,.pdf,.doc,.docx" onchange="handleFileSelect(event, 'wlp')" aria-label="Upload file for WLP" required aria-required="true">
+            <h3 class="section-title">Required Photo Attachments</h3>
+            
+            <!-- WLP Photo Upload Status (Professional Design) -->
+            <div id="wlpPhotoDiagnostics" style="background:#f8fafc;border:1px solid #d0d7de;border-radius:8px;padding:16px;margin-bottom:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;display:none">
+              <div style="font-size:13px;font-weight:600;color:#24292f;margin-bottom:12px;letter-spacing:0.01em">Upload Status</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="color:#57606a;font-weight:500">Parts Tag:</span>
+                  <span id="diagPartsTagBadge" class="wlp-status-badge" data-status="empty">Not selected</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="color:#57606a;font-weight:500">Damaged Part:</span>
+                  <span id="diagDamagedPartBadge" class="wlp-status-badge" data-status="empty">Not selected</span>
+                </div>
               </div>
-              <div id="wlpFileInfo" class="file-info" style="display:none;"></div>
-              <div id="wlpImagePreview" class="image-preview" style="display:none;"></div>
-              <div id="wlpUploadProgress" class="upload-progress"></div>
-              <p class="file-restrictions">Accepted: Images (JPG, PNG), PDF, Word documents. Max size: 10 MB</p>
-              <p class="file-required-note"><strong>Required:</strong> Please attach a document or image before submitting.</p>
+            </div>
+            
+            <style>
+              .wlp-status-badge {
+                display:inline-block;
+                padding:3px 10px;
+                border-radius:12px;
+                font-size:12px;
+                font-weight:600;
+                line-height:1.4;
+                white-space:nowrap;
+              }
+              .wlp-status-badge[data-status="empty"] {
+                background:#f6f8fa;
+                color:#57606a;
+                border:1px solid #d0d7de;
+              }
+              .wlp-status-badge[data-status="selected"] {
+                background:#ddf4ff;
+                color:#0969da;
+                border:1px solid #54aeff;
+              }
+              .wlp-status-badge[data-status="uploaded"] {
+                background:#dafbe1;
+                color:#1a7f37;
+                border:1px solid #4ac26b;
+              }
+              .wlp-status-badge[data-status="error"] {
+                background:#ffebe9;
+                color:#cf222e;
+                border:1px solid #ff8182;
+              }
+            </style>
+            
+            <!-- Parts Tag Photo -->
+            <div class="form-row-full" style="margin-bottom: 24px;">
+              <div class="form-group">
+                <label for="wlpPartsTagInput">Parts Tag Photo <span class="req">*</span> <span class="hint">(1 photo required)</span></label>
+                <div class="file-upload-section">
+                  <div class="file-input-wrapper">
+                    <label for="wlpPartsTagInput" class="file-input-label">
+                      <span>Choose Parts Tag Photo <span class="req">*</span></span>
+                    </label>
+                    <input type="file" id="wlpPartsTagInput" name="wlpPartsTagInput" accept="image/*" onchange="handleWlpMultiFileSelect(event, 'partsTag')" aria-label="Upload parts tag photo for WLP">
+                  </div>
+                  <div id="wlpPartsTagInfo" class="file-info" style="display:none;"></div>
+                  <div id="wlpPartsTagPreview" class="image-preview" style="display:none;"></div>
+                  <p class="file-restrictions">Accepted: Images (JPG, PNG) only. Max size: 10 MB per photo.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Damaged Part Photos -->
+            <div class="form-row-full">
+              <div class="form-group">
+                <label for="wlpDamagedPartInput">Damaged Part Photos <span class="req">*</span> <span class="hint">(minimum 2 photos required)</span></label>
+                <div class="file-upload-section">
+                  <div class="file-input-wrapper">
+                    <label for="wlpDamagedPartInput" class="file-input-label">
+                      <span>Choose Damaged Part Photos <span class="req">*</span></span>
+                    </label>
+                    <input type="file" id="wlpDamagedPartInput" name="wlpDamagedPartInput" accept="image/*" multiple onchange="handleWlpMultiFileSelect(event, 'damagedPart')" aria-label="Upload damaged part photos for WLP">
+                  </div>
+                  <div id="wlpDamagedPartInfo" class="file-info" style="display:none;"></div>
+                  <div id="wlpDamagedPartPreviews" class="image-preview" style="display:none;"></div>
+                  <p class="file-restrictions">Accepted: Images (JPG, PNG) only. Select at least 2 photos. Max size: 10 MB per photo.</p>
+                  <p class="file-required-note"><strong>Required:</strong> You must attach at least 2 photos of the damaged part(s).</p>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1415,7 +1489,30 @@
     'use strict';
 
     // File storage per form
-    var fileStorage = { wrc: null, fsc: null, wlp: null, wcf: null };
+    var fileStorage = { 
+      wrc: null, 
+      fsc: null, 
+      wlp: null, 
+      wcf: null,
+      // WLP multi-photo storage
+      wlpPartsTag: null,
+      wlpDamagedPart: []
+    };
+
+    // WLP UI State Machine (WLP only)
+    var wlpState = {
+      current: 'idle', // idle | editing | submitting | success | error
+      suppressValidation: false,
+      validationDebounceTimer: null
+    };
+
+    function setWlpState(newState) {
+      console.log('[WLP STATE] Transition:', wlpState.current, '->', newState);
+      wlpState.current = newState;
+      
+      // Suppress validation during submitting/success states
+      wlpState.suppressValidation = (newState === 'submitting' || newState === 'success');
+    }
 
     // ================================================================
     //  DATE FORMATTING: MMDDYYYY
@@ -1492,6 +1589,232 @@
       document.getElementById(formType + 'ImagePreview').style.display = 'none';
     }
 
+    // ================================================================
+    //  WLP MULTI-FILE UPLOAD: HANDLING & VALIDATION
+    // ================================================================
+
+    /**
+     * Handle WLP multi-photo file selection (Parts Tag + Damaged Part)
+     * @param {Event} event - File input change event
+     * @param {string} photoType - 'partsTag' or 'damagedPart'
+     */
+    function handleWlpMultiFileSelect(event, photoType) {
+      var files = Array.from(event.target.files);
+      var infoEl = document.getElementById('wlp' + (photoType === 'partsTag' ? 'PartsTag' : 'DamagedPart') + 'Info');
+      var previewEl = document.getElementById('wlp' + (photoType === 'partsTag' ? 'PartsTag' : 'DamagedPart') + (photoType === 'partsTag' ? 'Preview' : 'Previews'));
+      
+      if (!files || files.length === 0) {
+        clearWlpFileSelection(photoType);
+        return;
+      }
+
+      // Validation
+      var errors = [];
+
+      // Validate count
+      if (photoType === 'partsTag' && files.length !== 1) {
+        errors.push('Parts Tag: Please select exactly 1 photo (you selected ' + files.length + ')');
+      }
+      if (photoType === 'damagedPart' && files.length < 2) {
+        errors.push('Damaged Part: Please select at least 2 photos (you selected ' + files.length + ')');
+      }
+
+      // Validate each file
+      files.forEach(function(file, idx) {
+        if (file.size > MAX_FILE_SIZE) {
+          errors.push(file.name + ': File too large (' + (file.size/1024/1024).toFixed(2) + ' MB). Max 10 MB per photo.');
+        }
+        if (!file.type.startsWith('image/')) {
+          errors.push(file.name + ': Only image files are accepted.');
+        }
+      });
+
+      if (errors.length > 0) {
+        showMessage('wlpMessage', '<strong>Photo upload error:</strong><ul style="margin:8px 0;padding-left:20px">' 
+          + errors.map(function(e) { return '<li>' + e + '</li>'; }).join('') + '</ul>', true);
+        event.target.value = '';
+        clearWlpFileSelection(photoType);
+        return;
+      }
+
+      // Store files
+      if (photoType === 'partsTag') {
+        fileStorage.wlpPartsTag = files[0];
+        console.log('[WLP] Parts Tag photo selected:', files[0].name, files[0].size, 'bytes');
+      } else {
+        fileStorage.wlpDamagedPart = files;
+        console.log('[WLP] Damaged Part photos selected:', files.length, 'files');
+        files.forEach(function(f, i) {
+          console.log('  [' + (i+1) + ']', f.name, f.size, 'bytes');
+        });
+      }
+
+      // Update diagnostics display
+      updateWlpDiagnostics();
+
+      // Display file info
+      var fileList = files.map(function(f) {
+        return '<div style="margin:4px 0;padding:4px 8px;background:#f8f9fa;border-radius:4px">'
+          + '<span class="file-name">' + f.name + '</span> '
+          + '<span class="file-size">(' + formatFileSize(f.size) + ')</span>'
+          + '</div>';
+      }).join('');
+
+      infoEl.innerHTML = '<div style="margin-bottom:8px"><strong>' + files.length + ' photo' + (files.length > 1 ? 's' : '') + ' selected:</strong></div>' 
+        + fileList
+        + '<button type="button" class="remove-file-btn" onclick="clearWlpFileSelection(\'' + photoType + '\')" style="margin-top:8px">Remove All</button>';
+      infoEl.style.display = 'block';
+
+      // Show previews
+      previewEl.innerHTML = '';
+      files.forEach(function(file, idx) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          var imgDiv = document.createElement('div');
+          imgDiv.style.cssText = 'display:inline-block;margin:8px;border:1px solid #ddd;border-radius:4px;overflow:hidden';
+          imgDiv.innerHTML = '<img src="' + e.target.result + '" alt="Preview ' + (idx + 1) + '" style="max-width:150px;max-height:150px;display:block">'
+            + '<div style="font-size:0.75rem;padding:4px;text-align:center;background:#f8f9fa">' + (idx + 1) + '</div>';
+          previewEl.appendChild(imgDiv);
+        };
+        reader.readAsDataURL(file);
+      });
+      previewEl.style.display = 'block';
+    }
+
+    /**
+     * Clear WLP multi-photo selection
+     * @param {string} photoType - 'partsTag' or 'damagedPart'
+     */
+    function clearWlpFileSelection(photoType) {
+      if (photoType === 'partsTag') {
+        fileStorage.wlpPartsTag = null;
+        document.getElementById('wlpPartsTagInput').value = '';
+        document.getElementById('wlpPartsTagInfo').style.display = 'none';
+        document.getElementById('wlpPartsTagPreview').style.display = 'none';
+        console.log('[WLP] Parts Tag cleared');
+      } else {
+        fileStorage.wlpDamagedPart = [];
+        document.getElementById('wlpDamagedPartInput').value = '';
+        document.getElementById('wlpDamagedPartInfo').style.display = 'none';
+        document.getElementById('wlpDamagedPartPreviews').style.display = 'none';
+        console.log('[WLP] Damaged Part cleared');
+      }
+      updateWlpDiagnostics();
+    }
+
+    /**
+     * Update WLP photo diagnostics display with professional badge styling
+     */
+    function updateWlpDiagnostics() {
+      // Debounce to prevent flicker
+      if (wlpState.validationDebounceTimer) {
+        clearTimeout(wlpState.validationDebounceTimer);
+      }
+      
+      wlpState.validationDebounceTimer = setTimeout(function() {
+        var diagDiv = document.getElementById('wlpPhotoDiagnostics');
+        if (!diagDiv) return;
+
+        var partsTagCount = fileStorage.wlpPartsTag ? 1 : 0;
+        var damagedPartCount = fileStorage.wlpDamagedPart ? fileStorage.wlpDamagedPart.length : 0;
+
+        var partsTagBadge = document.getElementById('diagPartsTagBadge');
+        var damagedPartBadge = document.getElementById('diagDamagedPartBadge');
+
+        // Update Parts Tag badge
+        if (partsTagCount === 1) {
+          partsTagBadge.textContent = '1 selected';
+          partsTagBadge.setAttribute('data-status', 'selected');
+        } else if (wlpState.current === 'error' && partsTagCount === 0) {
+          partsTagBadge.textContent = 'Required';
+          partsTagBadge.setAttribute('data-status', 'error');
+        } else {
+          partsTagBadge.textContent = 'Not selected';
+          partsTagBadge.setAttribute('data-status', 'empty');
+        }
+
+        // Update Damaged Part badge
+        if (damagedPartCount >= 2) {
+          damagedPartBadge.textContent = damagedPartCount + ' selected';
+          damagedPartBadge.setAttribute('data-status', 'selected');
+        } else if (wlpState.current === 'error' && damagedPartCount < 2) {
+          damagedPartBadge.textContent = damagedPartCount + ' (need 2+)';
+          damagedPartBadge.setAttribute('data-status', 'error');
+        } else if (damagedPartCount === 1) {
+          damagedPartBadge.textContent = '1 selected (need 2+)';
+          damagedPartBadge.setAttribute('data-status', 'empty');
+        } else {
+          damagedPartBadge.textContent = 'Not selected';
+          damagedPartBadge.setAttribute('data-status', 'empty');
+        }
+
+        // Show diagnostic panel if any files selected OR if in error state
+        if (partsTagCount > 0 || damagedPartCount > 0 || wlpState.current === 'error') {
+          diagDiv.style.display = 'block';
+        } else {
+          diagDiv.style.display = 'none';
+        }
+      }, 250); // 250ms debounce
+    }
+
+    /**
+     * Upload multiple WLP photos to Google Drive
+     * @param {File[]} files - Array of File objects
+     * @param {string} photoType - 'partsTag' or 'damagedPart'
+     * @param {string} wrsNumber - WRS Number for naming
+     * @returns {Promise<Array>} Array of {url, fileId, name} objects
+     */
+    function uploadWlpPhotos(files, photoType, wrsNumber) {
+      return new Promise(function(resolve, reject) {
+        var uploadedFiles = [];
+        var uploadPromises = [];
+
+        files.forEach(function(file, idx) {
+          var promise = new Promise(function(res, rej) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+              var fileData = {
+                name: file.name,
+                type: file.type,
+                data: e.target.result.split(',')[1],
+                formType: 'WLP',
+                photoType: photoType,
+                photoIndex: idx,
+                wrsNumber: wrsNumber
+              };
+              
+              google.script.run
+                .withSuccessHandler(function(response) {
+                  if (response.success) {
+                    res({ url: response.url, fileId: response.fileId, name: file.name });
+                  } else {
+                    rej(new Error(response.message || 'Upload failed'));
+                  }
+                })
+                .withFailureHandler(function(error) {
+                  rej(error);
+                })
+                .uploadWlpPhoto(fileData);
+            };
+            reader.onerror = function() {
+              rej(new Error('Failed to read file: ' + file.name));
+            };
+            reader.readAsDataURL(file);
+          });
+          
+          uploadPromises.push(promise);
+        });
+
+        Promise.all(uploadPromises)
+          .then(function(results) {
+            resolve(results);
+          })
+          .catch(function(error) {
+            reject(error);
+          });
+      });
+    }
+
     function formatFileSize(bytes) {
       if (bytes === 0) return '0 Bytes';
       var k = 1024;
@@ -1541,7 +1864,47 @@
       var activeTab = document.getElementById('tab-' + formType);
       activeTab.classList.add('active');
       activeTab.setAttribute('aria-selected','true');
+      
+      // FSC-only: Load auto-generated transmittal number when tab is activated
+      if (formType === 'fsc') {
+        loadFscTransmittalNumber();
+      }
     }
+
+    // ================================================================
+    //  FSC: AUTO-GENERATED TRANSMITTAL NUMBER
+    // ================================================================
+
+    /**
+     * Fetch and display the next FSC transmittal number (FSC1, FSC2, etc.)
+     * This number is auto-generated server-side and read-only in the UI.
+     */
+    function loadFscTransmittalNumber() {
+      var input = document.getElementById('fscDealerTransNo');
+      if (!input) return;
+      
+      // Show loading state
+      input.value = 'Loading...';
+      input.style.backgroundColor = 'var(--color-disabled)';
+      
+      google.script.run
+        .withSuccessHandler(function(transmittalNo) {
+          if (transmittalNo && transmittalNo !== 'FSC-ERROR') {
+            input.value = transmittalNo;
+            input.style.backgroundColor = 'var(--color-disabled)';
+          } else {
+            input.value = 'Error loading number';
+            input.style.backgroundColor = 'var(--color-error-bg)';
+          }
+        })
+        .withFailureHandler(function(error) {
+          input.value = 'Error: ' + error.message;
+          input.style.backgroundColor = 'var(--color-error-bg)';
+          console.error('Failed to load FSC transmittal number:', error);
+        })
+        .getFscTransmittalNumberForUI();
+    }
+
 
     // ================================================================
     //  UI: MESSAGE DISPLAY
@@ -1595,6 +1958,10 @@
         var errorMessage = 'This field is required';
         
         if (input.type === 'file') {
+          // WLP has custom multi-photo validation in submitWLPForm, skip here
+          if (formType === 'wlp') {
+            return; // Skip file validation for WLP (handled separately)
+          }
           isEmpty = !fileStorage[formType];
         } else if (input.type === 'radio') {
           // For radio buttons, check if ANY in the group is checked
@@ -1913,6 +2280,8 @@
             showMessage('fscMessage', response.message, false);
             form.reset();
             clearFileSelection('fsc');
+            // Reload the next transmittal number for the next submission
+            loadFscTransmittalNumber();
           } else {
             // Handle structured validation errors from backend
             if (response.errorType === 'VALIDATION' && response.missingFields && response.missingFields.length > 0) {
@@ -1944,35 +2313,110 @@
     }
 
     // ================================================================
-    //  WLP FORM: SUBMISSION
+    //  WLP FORM: SUBMISSION WITH MULTI-PHOTO VALIDATION
     // ================================================================
 
     async function submitWLPForm(event) {
       event.preventDefault();
       var form = event.target;
+      
+      // Set state to editing (enables validation)
+      setWlpState('editing');
+      
+      console.log('[WLP SUBMIT] Starting submission process...');
+      console.log('[WLP SUBMIT] fileStorage.wlpPartsTag:', fileStorage.wlpPartsTag ? fileStorage.wlpPartsTag.name : 'NULL');
+      console.log('[WLP SUBMIT] fileStorage.wlpDamagedPart:', fileStorage.wlpDamagedPart ? fileStorage.wlpDamagedPart.length + ' files' : 'NULL');
+      
+      // Standard form validation
       if (!validateForm(form, 'wlp')) {
+        setWlpState('error');
+        updateWlpDiagnostics(); // Update badges to show error state
         showMessage('wlpMessage', 'Please fill in all required fields before submitting.', true);
         return;
       }
-      if (!fileStorage.wlp) {
-        showMessage('wlpMessage', 'Please attach a document or image file.', true);
+
+      // WLP-specific multi-photo validation
+      var validationErrors = [];
+      var partsTagCount = fileStorage.wlpPartsTag ? 1 : 0;
+      var damagedPartCount = fileStorage.wlpDamagedPart ? fileStorage.wlpDamagedPart.length : 0;
+      
+      console.log('[WLP VALIDATION] Parts Tag count:', partsTagCount);
+      console.log('[WLP VALIDATION] Damaged Part count:', damagedPartCount);
+      
+      if (partsTagCount !== 1) {
+        validationErrors.push('Parts Tag photo is required (exactly 1 photo, you have ' + partsTagCount + ')');
+      }
+      
+      if (damagedPartCount < 2) {
+        validationErrors.push('Damaged Part photos: at least 2 required (you have ' + damagedPartCount + ')');
+      }
+
+      if (validationErrors.length > 0) {
+        console.error('[WLP VALIDATION] Failed:', validationErrors);
+        setWlpState('error');
+        updateWlpDiagnostics(); // Update badges to show error state
+        showMessage('wlpMessage', '<strong>Photo attachment error:</strong><ul style="margin:8px 0;padding-left:20px">' 
+          + validationErrors.map(function(e) { return '<li>' + e + '</li>'; }).join('') + '</ul>', true);
         return;
       }
 
+      // Validation passed - enter submitting state
+      setWlpState('submitting');
       setButtonLoading('wlpSubmitBtn', true);
-      var fileUrl = '';
+      showMessage('wlpMessage', 'Uploading photos... Please wait.', false);
+
+      var wrsNumber = document.getElementById('wrsNumber').value.trim();
+      console.log('[WLP UPLOAD] WRS Number:', wrsNumber);
+
+      // Upload Parts Tag photo
+      var partsTagResults = [];
+      var damagedPartResults = [];
+
       try {
-        fileUrl = await uploadFile(fileStorage.wlp, 'wlp');
+        console.log('[WLP UPLOAD] Starting Parts Tag upload...');
+        partsTagResults = await uploadWlpPhotos([fileStorage.wlpPartsTag], 'partsTag', wrsNumber);
+        console.log('[WLP UPLOAD] Parts Tag upload complete:', partsTagResults);
+        
+        // Update badge to uploaded state
+        var partsTagBadge = document.getElementById('diagPartsTagBadge');
+        partsTagBadge.textContent = 'Uploaded';
+        partsTagBadge.setAttribute('data-status', 'uploaded');
+        
+        showMessage('wlpMessage', 'Parts Tag uploaded. Uploading Damaged Part photos...', false);
       } catch (error) {
+        console.error('[WLP UPLOAD] Parts Tag upload failed:', error);
+        setWlpState('error');
+        updateWlpDiagnostics();
         setButtonLoading('wlpSubmitBtn', false);
-        showMessage('wlpMessage', 'File upload failed: ' + error.message, true);
+        showMessage('wlpMessage', 'Parts Tag photo upload failed: ' + error.message, true);
+        return;
+      }
+
+      // Upload Damaged Part photos
+      try {
+        console.log('[WLP UPLOAD] Starting Damaged Part upload...');
+        damagedPartResults = await uploadWlpPhotos(fileStorage.wlpDamagedPart, 'damagedPart', wrsNumber);
+        console.log('[WLP UPLOAD] Damaged Part upload complete:', damagedPartResults);
+        
+        // Update badge to uploaded state
+        var damagedPartBadge = document.getElementById('diagDamagedPartBadge');
+        damagedPartBadge.textContent = damagedPartResults.length + ' uploaded';
+        damagedPartBadge.setAttribute('data-status', 'uploaded');
+        
+        showMessage('wlpMessage', 'All photos uploaded. Submitting form...', false);
+      } catch (error) {
+        console.error('[WLP UPLOAD] Damaged Part upload failed:', error);
+        setWlpState('error');
+        updateWlpDiagnostics();
+        setButtonLoading('wlpSubmitBtn', false);
+        showMessage('wlpMessage', 'Damaged Part photos upload failed: ' + error.message, true);
         return;
       }
 
       var ackDateSplit = splitDate(document.getElementById('repairAckDate').value);
 
       var formData = {
-        wrsNumber: document.getElementById('wrsNumber').value.trim(),
+        wrsNumber: wrsNumber,
         repairAckMonth: ackDateSplit.month,
         repairAckDay: ackDateSplit.day,
         repairAckYear: ackDateSplit.year,
@@ -1980,17 +2424,63 @@
         dealerMechCode: '20551',
         branch: document.getElementById('wlpBranch').value,
         email: document.getElementById('wlpEmail').value.trim(),
-        fileUrl: fileUrl
+        // Multi-photo data
+        partsTagPhoto: partsTagResults[0], // {url, fileId, name}
+        damagedPartPhotos: damagedPartResults // [{url, fileId, name}, ...]
       };
+
+      console.log('[WLP SUBMIT] Payload prepared:');
+      console.log('  - Payload keys:', Object.keys(formData).join(', '));
+      console.log('  - partsTagPhoto:', formData.partsTagPhoto);
+      console.log('  - damagedPartPhotos count:', formData.damagedPartPhotos.length);
+      console.log('  - damagedPartPhotos:', formData.damagedPartPhotos);
+
+      console.log('[WLP SUBMIT] Calling server submitWLP...');
 
       google.script.run
         .withSuccessHandler(function(response) {
+          console.log('[WLP SUBMIT] Server response:', response);
           setButtonLoading('wlpSubmitBtn', false);
           if (response.success) {
+            // Enter SUCCESS state - suppress validation
+            setWlpState('success');
+            
+            // Show success message and keep it visible
             showMessage('wlpMessage', response.message, false);
-            form.reset();
-            clearFileSelection('wlp');
+            
+            // Delay form reset to prevent validation flash
+            setTimeout(function() {
+              console.log('[WLP SUCCESS] Resetting form after delay...');
+              
+              // Reset badges to empty state
+              var partsTagBadge = document.getElementById('diagPartsTagBadge');
+              var damagedPartBadge = document.getElementById('diagDamagedPartBadge');
+              partsTagBadge.textContent = 'Not selected';
+              partsTagBadge.setAttribute('data-status', 'empty');
+              damagedPartBadge.textContent = 'Not selected';
+              damagedPartBadge.setAttribute('data-status', 'empty');
+              
+              // Clear file storage
+              clearWlpFileSelection('partsTag');
+              clearWlpFileSelection('damagedPart');
+              
+              // Reset form fields
+              form.reset();
+              
+              // Hide diagnostic panel
+              document.getElementById('wlpPhotoDiagnostics').style.display = 'none';
+              
+              // Return to idle state after reset complete
+              setTimeout(function() {
+                setWlpState('idle');
+                console.log('[WLP SUCCESS] Reset complete, returned to idle state');
+              }, 500);
+            }, 2000); // 2-second delay to show success message
           } else {
+            // Server returned error - enter error state
+            setWlpState('error');
+            updateWlpDiagnostics();
+            
             // Handle structured validation errors from backend
             if (response.errorType === 'VALIDATION' && response.missingFields && response.missingFields.length > 0) {
               var errorHtml = '<strong>Submission failed. Missing required fields:</strong><ul style="margin-top:8px;padding-left:20px;">';
@@ -2008,6 +2498,9 @@
           }
         })
         .withFailureHandler(function(error) {
+          console.error('[WLP SUBMIT] Server error:', error);
+          setWlpState('error');
+          updateWlpDiagnostics();
           setButtonLoading('wlpSubmitBtn', false);
           showMessage('wlpMessage', 'Server error: ' + error.message, true);
         })
@@ -2015,9 +2508,28 @@
     }
 
     function resetWLPForm() {
+      // Manual reset - go to idle state
+      setWlpState('idle');
+      
       document.getElementById('wlpForm').reset();
-      clearFileSelection('wlp');
+      clearWlpFileSelection('partsTag');
+      clearWlpFileSelection('damagedPart');
       document.getElementById('wlpMessage').classList.remove('visible');
+      
+      // Reset badges
+      var partsTagBadge = document.getElementById('diagPartsTagBadge');
+      var damagedPartBadge = document.getElementById('diagDamagedPartBadge');
+      if (partsTagBadge) {
+        partsTagBadge.textContent = 'Not selected';
+        partsTagBadge.setAttribute('data-status', 'empty');
+      }
+      if (damagedPartBadge) {
+        damagedPartBadge.textContent = 'Not selected';
+        damagedPartBadge.setAttribute('data-status', 'empty');
+      }
+      
+      // Hide diagnostic panel
+      document.getElementById('wlpPhotoDiagnostics').style.display = 'none';
     }
 
     // ================================================================
@@ -2477,6 +2989,9 @@
 
     window.addEventListener('DOMContentLoaded', function() {
       loadProvinces();
+      
+      // FSC-only: Load auto-generated transmittal number on page load
+      loadFscTransmittalNumber();
 
       document.querySelectorAll('input[required], select[required], textarea[required]').forEach(function(el) {
         el.addEventListener('blur', function() { validateField(this); });
